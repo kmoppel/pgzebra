@@ -6,8 +6,11 @@
     {% if message: %}
     <h3>{{message}}</h3>
     {% endif %}
-    <h3>{{table}} on <a href="">{{dbname}}</a></h3>
-    <textarea>{{data}}</textarea>
+    <ul>
+    {% for di in db_info: %}
+        <li><a href="/{{di['dbname']}}">{{di['dbname']}}</a> [{{di['hostname']}}:{{di['port']}}]</li>
+    {% endfor %}
+    </ul>
 </body>
 <script type="text/javascript">
     $(document).ready(function () {

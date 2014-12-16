@@ -7,11 +7,34 @@ from dbobject_cache import DBObjectsCache
 
 object_cache = None
 ''' :type object_cache: DBObjectsCache'''
-
+db_credentials = {}
 
 def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     data = []
     conn = None
+    if user is None and password is None:
+        user, password = db_credentials['{}:{}:{}'.format(dbname, hostname, port)]
+    try:
+        conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(sql, params)
+        data = cur.fetchall()
+    except Exception as e:
+        print 'ERROR execution failed on {}:{} - {}'.format(hostname, port, e.message)
+    finally:
+        if conn and not conn.closed:
+            conn.close()
+    return data
+
+
+def execute_on_db_uniq(db_uniq, sql, params=None):
+    """ db_uniq = dbname:hostname:port """
+    data = []
+    conn = None
+    user, password = db_credentials[db_uniq]
+    hostname = db_uniq.split(':')[0]
+    port = db_uniq.split(':')[1]
+    dbname = db_uniq.split(':')[2]
     try:
         conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -57,7 +80,8 @@ def add_db_to_object_cache(object_cache, host, port, db, user, password, tables=
     for td in data:
         # print td
         object_cache.add_table_to_cache(host, port, db,
-                                        td['full_table_name'], DBObjectsCache.formulate_table(td['full_table_name'], td['columns']))
+                                        td['full_table_name'], DBObjectsCache.formulate_table(td['columns']))   # TODO
+        db_credentials['{}:{}:{}'.format(host, port, db)] = (user, password)
 
 
 def initialize_db_object_cache(settings):
@@ -96,4 +120,4 @@ if __name__ == '__main__':
     object_cache = DBObjectsCache()
     add_db_to_object_cache(object_cache, 'localhost', 5432, 'postgres', 'postgres', 'postgres')
     print object_cache
-    print object_cache.get_db_and_table_names('pos', 'fk')
+    print object_cache.get_dbuniq_and_table_full_name('pos', 'fk')

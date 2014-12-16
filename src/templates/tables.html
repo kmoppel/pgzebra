@@ -1,0 +1,22 @@
+<html>
+<head>
+
+</head>
+<body>
+    {% if message: %}
+    <h3>{{message}}</h3>
+    {% endif %}
+    <h3>{{dbname}}</h3>
+    <ul>
+    {% for table in tables: %}
+        <li><a href="/{{dbname}}/{{table}}">{{table}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
+    {% endfor %}
+    </ul>
+</body>
+<script type="text/javascript">
+    $(document).ready(function () {
+
+    });
+</script>
+
+</html>

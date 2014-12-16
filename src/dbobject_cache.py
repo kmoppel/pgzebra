@@ -13,8 +13,8 @@ class DBObjectsCache(object):
     def __init__(self):
         self.cache = {}
 
-    def add_table_to_cache(self, db, host, port, table_name, table_info):
-        db_uniq = '{}:{}:{}'.format(db, host, port)
+    def add_table_to_cache(self, host, port, db, table_name, table_info):
+        db_uniq = '{}:{}:{}'.format(host, port, db)
         if db_uniq not in self.cache:
             self.cache[db_uniq] = {}
         self.cache[db_uniq][table_name] = table_info   # just overwriting without warning for now
@@ -27,15 +27,19 @@ class DBObjectsCache(object):
             columns_with_additional_info.append({'column_name': col, 'is_pk': False, 'fks': None})
         return columns_with_additional_info
 
-    def get_db_and_table_names(self, db_short, table_short):
+    def get_dbuniq_and_table_full_name(self, db_short, table_short=None):
         ret_db = None
         ret_table = None
 
         db_pattern = re.compile(db_short.replace('*', '.*'))
+        print 'self.cache', self.cache
         for db_uniq in self.cache:
+            print 'db_uniq', db_uniq
             if db_pattern.search(db_uniq):
-                if not ret_db or len(ret_db) > db_uniq:     # taking the shortest. TODO add warning in UI + sorting
+                if not ret_db or len(ret_db) > db_uniq:     # taking the shortest. TODO add warning in UI
                     ret_db = db_uniq
+                if not table_short:
+                    continue
                 table_pattern = re.compile(table_short.replace('*', '.*'))
                 for full_table_name in self.cache[ret_db]:
                     if table_pattern.search(full_table_name):
@@ -44,15 +48,21 @@ class DBObjectsCache(object):
 
         return ret_db, ret_table
 
-    def get_column(self, db, table, col_short):
-        ret_col = None
+    def get_all_tables_for_dbuniq(self, dbuniq):
+        return self.cache[dbuniq].keys()
 
-        col_pattern = re.compile(col_short.replace('*', '.*'))
-        for col in self.cache[db][table]:
-            col_name = col['column_name']
-            if col_pattern.search(col_name):
-                if not ret_col or len(ret_col) > col_name:     # taking the shortest. TODO add warning in UI + sorting
-                    ret_col = col_name
+    def get_column(self, db, table, col_short):
+        """ matches fragments to full name. shortest match wins. can be a list of comma separated names"""
+        ret_col = None
+        col_short_patterns = col_short.split(',')
+
+        for col_pattern in col_short_patterns:
+            col_pattern = re.compile(col_pattern.replace('*', '.*'))
+            for col in self.cache[db][table]:
+                col_name = col['column_name']
+                if col_pattern.search(col_name):
+                    if not ret_col or len(ret_col) > col_name:     # taking the shortest. TODO add warning in UI
+                        ret_col = col_name
 
         return ret_col
 
@@ -65,8 +75,8 @@ class DBObjectsCache(object):
 if __name__ == '__main__':
     db_objects_cache = DBObjectsCache()
     # print DBObjectsCache.formulate_table(['col1', 'col2'])
-    db_objects_cache.add_table_to_cache('postgres', 'local', 5432,
+    db_objects_cache.add_table_to_cache('local', 5432, 'postgres',
                                         'public.table1',
                                         DBObjectsCache.formulate_table(['col1', 'col2']))
     print db_objects_cache
-    print db_objects_cache.get_db_and_table_names('pos', 'ta*1')
+    print db_objects_cache.get_dbuniq_and_table_full_name('pos', 'ta*1')

@@ -5,6 +5,7 @@ features:
   expose_tables: true
   expose_views: false
   expose_all_dbs: true  # all except template dbs. can be overriden on db level
+  default_format: html  # csv, json
   default_order_by: DESC
   default_limit: 20
   created_patterns: created,timestamp,time
@@ -18,5 +19,4 @@ instances:
       user: postgres
       password: postgres
       databases:
-        local_pgobserver_db
         postgres
