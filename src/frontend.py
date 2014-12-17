@@ -44,7 +44,7 @@ class Frontend(object):
         db_info = []
         for u in db_uniqs:
             splits = u.split(':')
-            db_info.append({'dbname': splits[0], 'hostname': splits[1], 'port': splits[2]})
+            db_info.append({'hostname': splits[0], 'port': splits[1], 'dbname': splits[2]})
         db_info.sort(key=lambda x:x['dbname'])
 
         if output_format == 'json':
@@ -59,7 +59,7 @@ class Frontend(object):
         db_uniq, table = datadb.object_cache.get_dbuniq_and_table_full_name(dbname)
         tables = datadb.object_cache.get_all_tables_for_dbuniq(db_uniq)
         tables.sort()
-        print 'tables', tables
+        # print 'tables', tables
 
         if output_format == 'json':
             return json.dumps(tables)

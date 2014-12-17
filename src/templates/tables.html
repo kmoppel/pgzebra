@@ -9,7 +9,7 @@
     <h3>{{dbname}}</h3>
     <ul>
     {% for table in tables: %}
-        <li><a href="/{{dbname}}/{{table}}">{{table}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
+        <li><a href="/{{dbname}}/{{table|e}}">{{table|e}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
     {% endfor %}
     </ul>
 </body>

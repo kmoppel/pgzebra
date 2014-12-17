@@ -49,7 +49,7 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
 
 
 def get_list_of_dbs_on_instance(host, port, db, user, password):
-    sql = """select datname from pg_database where not datistemplate"""
+    sql = """select datname from pg_database where not datistemplate and datname != 'postgres'"""
     return [x['datname'] for x in execute_on_host(host, port, db, user, password, sql)]
 
 
@@ -76,7 +76,6 @@ def add_db_to_object_cache(object_cache, host, port, db, user, password, tables=
         raise Exception('Views and/or Tables exposing must be enabled!')
 
     data = execute_on_host(host, port, db, user, password, sql, (table_type,))
-    print data[0]
     for td in data:
         # print td
         object_cache.add_table_to_cache(host, port, db,
@@ -100,13 +99,15 @@ def initialize_db_object_cache(settings):
 
     for inst_name, inst_data in instances.iteritems():
 
-        if not expose_all_dbs and not 'databases' in inst_data:
+        if not expose_all_dbs and 'databases' not in inst_data:
             raise Exception('Explicit list of allowed DBs needed for {}'.format(inst_name))
 
-        dbs = inst_data.get('databases', 'postgres').split()
-        if expose_all_dbs and 'databases' not in inst_data:
+        dbs = []
+        if 'databases' not in inst_data:
             dbs = get_list_of_dbs_on_instance(inst_data['hostname'], inst_data['port'], 'postgres',
                                               inst_data['user'], inst_data['password'])
+        else:
+            dbs = inst_data['databases']
 
         for db in dbs:
             print 'initializing cache for cluster {}, db {}'.format(inst_name, db)

@@ -34,8 +34,8 @@ def main():
         parser.print_help()
         return
 
-    print 'instances'
-    print settings['instances']
+    print 'instances found'
+    print settings['instances'].keys()
     print 'features'
     print settings['features']
 
