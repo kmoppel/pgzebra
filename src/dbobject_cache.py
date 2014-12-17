@@ -32,9 +32,8 @@ class DBObjectsCache(object):
         ret_table = None
 
         db_pattern = re.compile(db_short.replace('*', '.*'))
-        print 'self.cache', self.cache
         for db_uniq in self.cache:
-            print 'db_uniq', db_uniq
+            # print 'db_uniq', db_uniq
             if db_pattern.search(db_uniq):
                 if not ret_db or len(ret_db) > db_uniq:     # taking the shortest. TODO add warning in UI
                     ret_db = db_uniq

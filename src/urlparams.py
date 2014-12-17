@@ -11,6 +11,7 @@ class UrlParams(object):
         self.table = None
         self.column_names = []
         self.filters = []     # [(col_short, op, value),]  op: eq/=, gt/>
+        self.aggregations = []     # [(operator, column),]  op: count, sum, min, max
         self.joinitems = {}
         self.limit = features.get('default_limit', 20)
         self.order_by_direction = features.get('default_order_by', 'DESC')
@@ -63,6 +64,7 @@ class UrlParams(object):
             #   : o/[c|m]
             #   : o/[c|m][asc|desc]
             #   : o[rderby]/columnpattern/[asc|desc]
+            # TODO multicolumn, comma separated
             if current_arg == 'o' or current_arg == 'orderby':
                 if has_next and next_arg in ['a', 'asc', 'd', 'desc']:
                         self.order_by_column = self.column_names[0]  # 1st col by default TODO use PK
@@ -97,16 +99,38 @@ class UrlParams(object):
                         continue
                 else:
                     self.order_by_column = self.column_names[0]  # 1st col by default TODO use PK
+                    continue
 
-            #
             # filters
-            # if args[current_arg_counter]
+            # /column/>/val
+            # TODO add special keywords like today?
+            # TODO add also lt,gt,eq
+            if has_next and next_arg in ['<', '<=', '>', '>=', '='] and has_2nd:
+                column = self.object_cache.get_column(self.db_uniq, self.table, current_arg)
+                self.filters.append((column, next_arg, next_2nd))
+                current_arg_counter += 3
+                continue
+
+            # simple aggregations
+            # count, sum, min, max
+            if current_arg == 'agg' and has_2nd and next_arg in ['count', 'sum', 'min', 'max']:
+                self.aggregations.append((next_arg, next_2nd))
+                current_arg_counter += 3
+                continue
+
+            print 'WARNING: did not make use of ', current_arg
             current_arg_counter += 1
 
-
-    def to_sql(self):
+    def to_sql(self):   # TODO sql injection analyze. use psycopg2 mogrify?
         sql = 'SELECT '
-        sql += ', '.join(self.column_names)
+        if self.aggregations:
+            i = 0
+            for agg_op, column in self.aggregations:
+                sql += ('' if i == 0 else ', ') + agg_op + '(' + column + ')'
+                i += 1
+        else:
+            sql += ', '.join(self.column_names)
+
         sql += ' FROM ' + self.table
         if self.filters:
             sql += ' WHERE '
@@ -117,16 +141,15 @@ class UrlParams(object):
                     raise Exception('Column {} not found! Known columns: {}'.format(fcol, self.column_names))
                 sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop, fval)
                 i += 1
-        if self.order_by_column:
-            sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction)
-        sql += ' LIMIT {}'.format(self.limit)
+        if not self.aggregations:
+            if self.order_by_column:
+                sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction)
+            sql += ' LIMIT {}'.format(self.limit)
         return sql
-
 
     def __str__(self):
         return 'UrlParams: db {}, table {}, columns {}, output_format {}'.format(self.db_uniq, self.table,
                                                                                  self.column_names, self.output_format)
-
 
 if __name__ == '__main__':
     db_objects_cache = DBObjectsCache()
@@ -142,10 +165,7 @@ if __name__ == '__main__':
         'modified_patterns': 'modified,updated,timestamp',
     }
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'l', '100', 'o', 'd')
-    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'o', 'm', 'f', 'h')
-    # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1')
+    # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'o', 'm', 'f', 'h', 'col1', '<=', '1')
+    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'col1', '<=', '100', 'agg', 'count', 'c1', 'agg', 'max', 'c1')
     print up
-    print up.to_sql()
-    up.filters.append(('col1', '=', '1'))
-    up.filters.append(('col1', '=', '1'))
     print up.to_sql()

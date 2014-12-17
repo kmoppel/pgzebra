@@ -10,6 +10,13 @@ features:
   default_limit: 20
   created_patterns: created,timestamp,time
   modified_patterns: modified,updated,timestamp
+  maximum_text_column_length: 80    # TODO
+# TODO
+#  whitelist:
+#    - pattern1
+#  blacklist:
+#    - pattern1
+
 
 instances:
 

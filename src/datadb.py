@@ -30,6 +30,7 @@ def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
 def execute_on_db_uniq(db_uniq, sql, params=None):
     """ db_uniq = dbname:hostname:port """
     data = []
+    column_names = []
     conn = None
     user, password = db_credentials[db_uniq]
     hostname = db_uniq.split(':')[0]
@@ -41,16 +42,25 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
         cur = conn.cursor()
         cur.execute(sql, params)
         data = cur.fetchall()
+        column_names = [x[0] for x in cur.description]
     except Exception as e:
         print 'ERROR execution failed on {}:{} - {}'.format(hostname, port, e.message)
     finally:
         if conn and not conn.closed:
             conn.close()
-    return data
+    return data, column_names
 
 
-def get_column_info(dbuniq, table_name):
-    return object_cache.cache[dbuniq][table_name]
+def get_column_info(dbuniq, table_name, column_names):
+    ret = []
+    for cn in column_names:
+        ci = {'column_name': cn}
+        for cache_info in object_cache.cache[dbuniq][table_name]:
+            if cn == cache_info['column_name']:
+                ci = cache_info
+                break
+        ret.append(ci)
+    return ret
 
 
 def get_list_of_dbs_on_instance(host, port, db, user, password):

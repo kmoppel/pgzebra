@@ -28,9 +28,9 @@ class Frontend(object):
         print 'up', up
         sql = up.to_sql()
         # print 'sql', sql
-        data = datadb.execute_on_db_uniq(up.db_uniq, sql)
+        data, column_names = datadb.execute_on_db_uniq(up.db_uniq, sql)
         # print 'data', data
-        column_info = datadb.get_column_info(up.db_uniq, up.table)  # TODO highlight PK in UI
+        column_info = datadb.get_column_info(up.db_uniq, up.table, column_names)  # TODO highlight PK in UI
 
         if up.output_format == 'json':
             # stringify everything, not to get "is not JSON serializable"
