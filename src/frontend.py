@@ -3,6 +3,7 @@ from jinja2 import Environment, FileSystemLoader
 import os
 import json
 import csv
+import time
 
 import datadb
 from urlparams import UrlParams
@@ -38,6 +39,8 @@ class Frontend(object):
             for row in data:
                 stringified.append([str(x) for x in row])   # TODO better to cast all cols to ::text in SQL?
             return json.dumps(stringified)
+        elif up.output_format == 'graph':
+            return self.plot_graph(data)
         elif up.output_format == 'csv':
             return json.dumps(data)     # TODO
         else:
@@ -74,3 +77,10 @@ class Frontend(object):
         else:
             tmpl = env.get_template('tables.html')
             return tmpl.render(message='', dbname=db, hostname=hostname, port=port, tables=tables)
+
+    def plot_graph(self, data):
+        # TODO
+        data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
+        return str(data)
+        tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it?
+        return tmpl.render(data=data)

@@ -13,6 +13,9 @@ class UrlParams(object):
         self.filters = []     # [(col_short, op, value),]  op: eq/=, gt/>
         self.aggregations = []     # [(operator, column),]  op: count, sum, min, max
         self.joinitems = {}
+        self.graphtype = None
+        self.graphkey = None
+        self.graphbucket = None
         self.limit = features.get('default_limit', 20)
         self.order_by_direction = features.get('default_order_by', 'DESC')
         self.order_by_column = None
@@ -41,11 +44,16 @@ class UrlParams(object):
 
             # output_format
             if current_arg == 'f' or current_arg == 'format':
-                if has_next and next_arg in ['c', 'csv', 'j', 'json', 'h', 'html']:
+                if has_next and next_arg in ['c', 'csv', 'j', 'json', 'h', 'html', 'g', 'graph']:
                     if next_arg[0] == 'c':
                         self.output_format = 'csv'
                     elif next_arg[0] == 'j':
                         self.output_format = 'json'
+                    elif next_arg[0] == 'g' and next_2nd and next_2nd in ['l', 'line', 'p', 'pie']:
+                        self.output_format = 'graph'
+                        self.graphtype = 'pie' if next_2nd == 'p' else 'line'
+                        current_arg_counter += 3
+                        continue
                     else:
                         self.output_format = 'html'
                     current_arg_counter += 2
@@ -118,6 +126,19 @@ class UrlParams(object):
                 current_arg_counter += 3
                 continue
 
+            # simple graphs
+            # /gkey/col
+            if current_arg in ['gk', 'gkey'] and has_next:
+                self.graphkey = self.object_cache.get_column(self.db_uniq, self.table, next_arg)
+                current_arg_counter += 2
+                continue
+            # /gbucket/1h   [1month,1d,1h,1min]
+            if current_arg in ['gb', 'gbucket'] and has_next and next_arg in ['month', 'day', 'hour', 'min', 'minute']:
+                self.graphbucket = next_arg
+                current_arg_counter += 2
+                continue
+
+
             print 'WARNING: did not make use of ', current_arg
             current_arg_counter += 1
 
@@ -128,6 +149,8 @@ class UrlParams(object):
             for agg_op, column in self.aggregations:
                 sql += ('' if i == 0 else ', ') + agg_op + '(' + column + ')'
                 i += 1
+        elif self.output_format == 'graph':
+            sql += "date_trunc('{}', {}), count(*)".format(self.graphbucket, self.graphkey)
         else:
             sql += ', '.join(self.column_names)
 
@@ -141,15 +164,19 @@ class UrlParams(object):
                     raise Exception('Column {} not found! Known columns: {}'.format(fcol, self.column_names))
                 sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop, fval)
                 i += 1
-        if not self.aggregations:
+
+        if self.graphkey:
+            sql += ' GROUP BY 1 ORDER BY 1'
+        elif not self.aggregations:
             if self.order_by_column:
                 sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction)
             sql += ' LIMIT {}'.format(self.limit)
         return sql
 
     def __str__(self):
-        return 'UrlParams: db {}, table {}, columns {}, output_format {}'.format(self.db_uniq, self.table,
-                                                                                 self.column_names, self.output_format)
+        return 'UrlParams: db {}, table {}, columns {}, output_format {}, graphtype {}, gkey {}, gbucket {}'.format(self.db_uniq, self.table,
+                                                                                 self.column_names, self.output_format,
+                                                                                 self.graphtype, self.graphkey, self.graphbucket)
 
 if __name__ == '__main__':
     db_objects_cache = DBObjectsCache()
@@ -166,6 +193,7 @@ if __name__ == '__main__':
     }
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'l', '100', 'o', 'd')
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'o', 'm', 'f', 'h', 'col1', '<=', '1')
-    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'col1', '<=', '100', 'agg', 'count', 'c1', 'agg', 'max', 'c1')
+    # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'col1', '<=', '100', 'agg', 'count', 'c1', 'agg', 'max', 'c1')
+    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'l', 'gkey', 'created', 'gbucket', 'hour')
     print up
     print up.to_sql()
