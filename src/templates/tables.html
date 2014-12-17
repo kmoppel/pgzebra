@@ -1,22 +1,20 @@
+<!DOCTYPE html>
 <html>
 <head>
-
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 </head>
 <body>
-    {% if message: %}
-    <h3>{{message}}</h3>
-    {% endif %}
-    <h3>{{dbname}}</h3>
-    <ul>
-    {% for table in tables: %}
-        <li><a href="/{{dbname}}/{{table|e}}">{{table|e}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
-    {% endfor %}
-    </ul>
+    <div class="container-fluid">
+        <h3>{{message}}</h3>
+        <h3>Tables for <abbr title="{{hostname}}:{{port}}">{{dbname}}</abbr></h3>
+        <ul>
+        {% for table in tables: %}
+            <li><a href="/{{dbname}}/{{table|e}}">{{table|e}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
+        {% endfor %}
+        </ul>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {});
+    </script>
 </body>
-<script type="text/javascript">
-    $(document).ready(function () {
-
-    });
-</script>
-
 </html>

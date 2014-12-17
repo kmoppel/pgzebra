@@ -1,21 +1,20 @@
+<!DOCTYPE html>
 <html>
 <head>
-
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
 </head>
 <body>
-    {% if message: %}
-    <h3>{{message}}</h3>
-    {% endif %}
-    <ul>
-    {% for di in db_info: %}
-        <li><a href="/{{di['dbname']}}">{{di['dbname']}}</a> [{{di['hostname']}}:{{di['port']}}]</li>
-    {% endfor %}
-    </ul>
+    <div class="container-fluid">
+        <h3>{{message}}</h3>
+        <h3>Databases found</h3>
+        <ul>
+        {% for di in db_info: %}
+            <li><a href="/{{di['dbname']}}">{{di['dbname']}}</a> [{{di['hostname']}}:{{di['port']}}]</li>
+        {% endfor %}
+        </ul>
+    </div>
+    <script type="text/javascript">
+        $(document).ready(function () {});
+    </script>
 </body>
-<script type="text/javascript">
-    $(document).ready(function () {
-
-    });
-</script>
-
 </html>

@@ -1,6 +1,5 @@
 import psycopg2
 import psycopg2.extras
-import re
 
 from dbobject_cache import DBObjectsCache
 
@@ -8,6 +7,7 @@ from dbobject_cache import DBObjectsCache
 object_cache = None
 ''' :type object_cache: DBObjectsCache'''
 db_credentials = {}
+
 
 def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     data = []
@@ -37,7 +37,8 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
     dbname = db_uniq.split(':')[2]
     try:
         conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        # cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur = conn.cursor()
         cur.execute(sql, params)
         data = cur.fetchall()
     except Exception as e:
@@ -46,6 +47,10 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
         if conn and not conn.closed:
             conn.close()
     return data
+
+
+def get_column_info(dbuniq, table_name):
+    return object_cache.cache[dbuniq][table_name]
 
 
 def get_list_of_dbs_on_instance(host, port, db, user, password):

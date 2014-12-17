@@ -1,20 +1,53 @@
+<!DOCTYPE html>
 <html>
 <head>
-
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="//cdn.datatables.net/1.10.4/css/jquery.dataTables.css">
 </head>
 <body>
-    {% if message: %}
-    <h3>{{message}}</h3>
-    {% endif %}
-    <h3>{{table}} on <a href="/{{dbname}}">{{dbname}}</a></h3>
-    <textarea>{{sql}}</textarea>
-    <br />
-    <textarea>{{data}}</textarea>
+    <div class="container-fluid">
+        {% if message: %}
+        <h3>{{message}}</h3>
+        {% endif %}
+        <h3>{{table}} on <a href="/{{dbname}}">{{dbname}}</a></h3>
+        <p class="text-info">Generated SQL</p>
+        <textarea style="width: 100%" >{{sql}}</textarea>
+        <br />
+        <br />
+        <table id="data_table" class="display" cellspacing="0" width="100%">
+            <thead>
+                <tr>
+                {% for ci in column_info %}
+                    <th>{{ci['column_name']}}</th>
+                {% endfor %}
+                </tr>
+            </thead>
+            <tfoot>
+                <tr>
+                {% for ci in column_info %}
+                    <th>{{ci['column_name']}}</th>
+                {% endfor %}
+                </tr>
+            </tfoot>
+            <tbody>
+                {% for row in data %}
+                    <tr>
+                        {% for col in row %}
+                        <td>{{col}}</td>
+                        {% endfor %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="//cdn.datatables.net/1.10.4/js/jquery.dataTables.min.js"></script>
+    <!-- <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script> -->
+    <script type="text/javascript">
+        $(document).ready(function () {
+             $('#data_table').DataTable();
+        });
+    </script>
 </body>
-<script type="text/javascript">
-    $(document).ready(function () {
-
-    });
-</script>
-
 </html>
