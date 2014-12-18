@@ -49,9 +49,9 @@ class UrlParams(object):
                         self.output_format = 'csv'
                     elif next_arg[0] == 'j':
                         self.output_format = 'json'
-                    elif next_arg[0] == 'g' and next_2nd and next_2nd in ['l', 'line', 'p', 'pie']:
+                    elif next_arg[0] == 'g' and has_2nd and next_2nd in ['l', 'line', 'p', 'pie']:
                         self.output_format = 'graph'
-                        self.graphtype = 'pie' if next_2nd == 'p' else 'line'
+                        self.graphtype = 'pie' if next_2nd[0] == 'p' else 'line'
                         current_arg_counter += 3
                         continue
                     else:
@@ -150,7 +150,10 @@ class UrlParams(object):
                 sql += ('' if i == 0 else ', ') + agg_op + '(' + column + ')'
                 i += 1
         elif self.output_format == 'graph':
-            sql += "date_trunc('{}', {}), count(*)".format(self.graphbucket, self.graphkey)
+            if self.graphtype == 'line':
+                sql += "date_trunc('{}', {}), count(*)".format(self.graphbucket, self.graphkey)
+            else:
+                sql += "{}, count(*)".format(self.graphkey)
         else:
             sql += ', '.join(self.column_names)
 
@@ -166,7 +169,10 @@ class UrlParams(object):
                 i += 1
 
         if self.graphkey:
-            sql += ' GROUP BY 1 ORDER BY 1'
+            if self.graphtype == 'line':
+                sql += ' GROUP BY 1 ORDER BY 1'
+            elif self.graphtype == 'pie':
+                sql += ' GROUP BY 1 ORDER BY 2 DESC'
         elif not self.aggregations:
             if self.order_by_column:
                 sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction)
@@ -194,6 +200,7 @@ if __name__ == '__main__':
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'l', '100', 'o', 'd')
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'o', 'm', 'f', 'h', 'col1', '<=', '1')
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'col1', '<=', '100', 'agg', 'count', 'c1', 'agg', 'max', 'c1')
-    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'l', 'gkey', 'created', 'gbucket', 'hour')
+    # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'l', 'gkey', 'created', 'gbucket', 'hour')
+    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'pie', 'gkey', 'col1')
     print up
     print up.to_sql()

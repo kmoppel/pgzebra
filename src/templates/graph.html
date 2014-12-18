@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+    <div class="container-fluid">
+        <div id="graph_placeholder" style="width:100%;height:300px;">
+        </div>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.time.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/flot/0.8.2/jquery.flot.pie.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function () {
+            var dataset = [
+                { label: "Count", data: {{data}}, color: "#9e29b4" }
+            ];
+            var graph_type = '{{graph_type}}';  // line, pie
+            console.log(graph_type);
+
+            var options = {
+                    xaxis: {
+                        mode: "time",
+                        timeformat: "%d.%m %H:00",
+                        timezone: "browser"
+                    }
+                };
+            if (graph_type == 'pie') {
+                options = {
+                     series: {
+                            pie: {
+                                show: true
+                            }
+                    },
+                    legend: {
+                        show: false
+                    }
+                }
+            }
+
+            $.plot($("#graph_placeholder"), dataset, options);
+        });
+    </script>
+</body>
+</html>
