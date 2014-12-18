@@ -4,6 +4,11 @@ import os
 import json
 import csv
 import time
+import pygal
+from cherrypy.lib import file_generator
+import StringIO
+import random
+import datetime
 
 import datadb
 from urlparams import UrlParams
@@ -25,27 +30,27 @@ class Frontend(object):
 
         message = ''
         print 'args', args
-        up = UrlParams(datadb.object_cache, self.features, *args)
-        print 'up', up
-        sql = up.to_sql()
+        urlparams = UrlParams(datadb.object_cache, self.features, *args)
+        print 'up', urlparams
+        sql = urlparams.to_sql()
         # print 'sql', sql
-        data, column_names = datadb.execute_on_db_uniq(up.db_uniq, sql)
+        data, column_names = datadb.execute_on_db_uniq(urlparams.db_uniq, sql)
         # print 'data', data
-        column_info = datadb.get_column_info(up.db_uniq, up.table, column_names)  # TODO highlight PK in UI
+        column_info = datadb.get_column_info(urlparams.db_uniq, urlparams.table, column_names)  # TODO highlight PK in UI
 
-        if up.output_format == 'json':
+        if urlparams.output_format == 'json':
             # stringify everything, not to get "is not JSON serializable"
             stringified = []
             for row in data:
                 stringified.append([str(x) for x in row])   # TODO better to cast all cols to ::text in SQL?
             return json.dumps(stringified)
-        elif up.output_format == 'graph':
-            return self.plot_graph(data, up.graphtype)
-        elif up.output_format == 'csv':
-            return json.dumps(data)     # TODO
+        elif urlparams.output_format in ['graph', 'png']:
+            return self.plot_graph(data, urlparams)
+        elif urlparams.output_format == 'csv':
+            return self.to_csv(data, column_names, urlparams)
         else:
             tmpl = env.get_template('index.html')
-            return tmpl.render(message=message, dbname=up.dbname, table=up.table, sql=sql, data=data, column_info=column_info)
+            return tmpl.render(message=message, dbname=urlparams.dbname, table=urlparams.table, sql=sql, data=data, column_info=column_info)
 
     def list_all_dbs(self, output_format='html'):
         db_uniqs = datadb.object_cache.cache.keys()
@@ -57,8 +62,6 @@ class Frontend(object):
 
         if output_format == 'json':
             return json.dumps(db_info)
-        elif output_format == 'csv':
-            return json.dumps(db_info)     # TODO
         else:
             tmpl = env.get_template('dbs.html')
             return tmpl.render(message='', db_info=db_info)
@@ -72,17 +75,49 @@ class Frontend(object):
 
         if output_format == 'json':
             return json.dumps(tables)
-        elif output_format == 'csv':
-            return json.dumps(tables)     # TODO
         else:
             tmpl = env.get_template('tables.html')
             return tmpl.render(message='', dbname=db, hostname=hostname, port=port, tables=tables)
 
-    def plot_graph(self, data, graph_type):
-        if graph_type == 'line':
+    def plot_graph(self, data, urlparams):
+        if urlparams.graphtype == 'line' and urlparams.output_format == 'graph':
             data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
-        data = json.dumps(data)
 
-        # return str(data)
-        tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it? http://pygal.org/chart_types/#idline-charts
-        return tmpl.render(data=data, graph_type=graph_type)
+        if urlparams.output_format == 'graph':
+            data = json.dumps(data)
+            tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it? http://pygal.org/chart_types/#idline-charts
+            return tmpl.render(data=data, graph_type=urlparams.graphtype)
+        elif urlparams.output_format == 'png':
+            chart = None
+            if urlparams.graphtype == 'line':
+                chart = pygal.Line()
+                chart.title = 'Counts of {} over 1{} slots'.format(urlparams.graphkey, urlparams.graphbucket)
+                labels = []
+                for i, d in enumerate(data):
+                    if i % 4 == 0 or i == (len(data)-1):
+                        labels.append(str(d[0]))
+                chart.x_labels = labels
+                chart.add('Count', [v for t, v in data])
+            elif urlparams.graphtype == 'pie':
+                chart = pygal.Pie()
+                chart.title = 'Distribution of {} values'.format(urlparams.graphkey)
+                for key, count in data:
+                    chart.add(str(key), count)
+
+            random_file_path = '/tmp/pgzebra{}.png'.format(random.random())
+            chart.render_to_png(random_file_path)
+            output = StringIO.StringIO(open(random_file_path).read())   # should be possible to skip this step also?
+            os.unlink(random_file_path)
+
+            cherrypy.response.headers['Content-Type'] = 'image/png'
+            return file_generator(output)
+
+    def to_csv(self, data, column_names, urlparams):
+        csvfile = StringIO.StringIO()
+        writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_ALL)
+        writer.writerow(column_names)
+        writer.writerows(data)
+        cherrypy.response.headers['Content-Type'] = 'text/csv'
+        cherrypy.response.headers['Content-Disposition'] = 'attachment; filename="{}_{}.csv"'.format(urlparams.table,
+                                                                                                     datetime.datetime.now().strftime('%Y-%m-%d_%H%M'))
+        return csvfile.getvalue()

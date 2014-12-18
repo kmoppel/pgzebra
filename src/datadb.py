@@ -62,7 +62,6 @@ def get_column_info(dbuniq, table_name, column_names):
         ret.append(ci)
     return ret
 
-
 def get_list_of_dbs_on_instance(host, port, db, user, password):
     sql = """select datname from pg_database where not datistemplate and datname != 'postgres'"""
     return [x['datname'] for x in execute_on_host(host, port, db, user, password, sql)]

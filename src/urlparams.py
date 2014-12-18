@@ -44,13 +44,18 @@ class UrlParams(object):
 
             # output_format
             if current_arg == 'f' or current_arg == 'format':
-                if has_next and next_arg in ['c', 'csv', 'j', 'json', 'h', 'html', 'g', 'graph']:
+                if has_next and next_arg in ['c', 'csv', 'j', 'json', 'h', 'html', 'g', 'graph', 'png']:
                     if next_arg[0] == 'c':
                         self.output_format = 'csv'
                     elif next_arg[0] == 'j':
                         self.output_format = 'json'
                     elif next_arg[0] == 'g' and has_2nd and next_2nd in ['l', 'line', 'p', 'pie']:
                         self.output_format = 'graph'
+                        self.graphtype = 'pie' if next_2nd[0] == 'p' else 'line'
+                        current_arg_counter += 3
+                        continue
+                    elif next_arg == 'png' and has_2nd and next_2nd in ['l', 'line', 'p', 'pie']:
+                        self.output_format = 'png'
                         self.graphtype = 'pie' if next_2nd[0] == 'p' else 'line'
                         current_arg_counter += 3
                         continue
@@ -149,7 +154,7 @@ class UrlParams(object):
             for agg_op, column in self.aggregations:
                 sql += ('' if i == 0 else ', ') + agg_op + '(' + column + ')'
                 i += 1
-        elif self.output_format == 'graph':
+        elif self.output_format in ['graph', 'png']:
             if self.graphtype == 'line':
                 sql += "date_trunc('{}', {}), count(*)".format(self.graphbucket, self.graphkey)
             else:
