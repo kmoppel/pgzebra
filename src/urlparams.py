@@ -1,5 +1,6 @@
 from dbobject_cache import DBObjectsCache
 
+
 class UrlParams(object):
 
     def __init__(self, object_cache, features, *args):
@@ -147,7 +148,12 @@ class UrlParams(object):
             print 'WARNING: did not make use of ', current_arg
             current_arg_counter += 1
 
-    def to_sql(self):   # TODO sql injection analyze. use psycopg2 mogrify?
+    def do_pre_sql_check(self): # TODO sql injection analyze. use psycopg2 mogrify?
+        if self.graphtype == 'line' and not self.graphbucket:
+            raise Exception('gbucket/gb parameter missing! [ allowed values: month, week, day, hour, minute]')
+
+    def to_sql(self):
+        self.do_pre_sql_check()
         sql = 'SELECT '
         if self.aggregations:
             i = 0

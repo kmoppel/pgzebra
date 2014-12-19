@@ -33,7 +33,7 @@ class Frontend(object):
         urlparams = UrlParams(datadb.object_cache, self.features, *args)
         print 'up', urlparams
         sql = urlparams.to_sql()
-        # print 'sql', sql
+        print 'sql', sql
         data, column_names = datadb.execute_on_db_uniq(urlparams.db_uniq, sql)
         # print 'data', data
         column_info = datadb.get_column_info(urlparams.db_uniq, urlparams.table, column_names)  # TODO highlight PK in UI
@@ -80,13 +80,24 @@ class Frontend(object):
             return tmpl.render(message='', dbname=db, hostname=hostname, port=port, tables=tables)
 
     def plot_graph(self, data, urlparams):
-        if urlparams.graphtype == 'line' and urlparams.output_format == 'graph':
-            data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
+        line_data = []
+        pie_data = []
 
         if urlparams.output_format == 'graph':
-            data = json.dumps(data)
+            if urlparams.graphtype == 'line':
+                line_data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
+                line_data = json.dumps(line_data)
+            else:
+                # pie_data = data
+                for d in data:
+                    pie_data.append({'label': str(d[0]), 'data': [d[1]]})
+                pie_data = json.dumps(pie_data)
+                # [
+                # { label: "Val1", data: [1]},
+                # { label: "Val2", data: [3]},
+                # ];
             tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it? http://pygal.org/chart_types/#idline-charts
-            return tmpl.render(data=data, graph_type=urlparams.graphtype, table=urlparams.table)
+            return tmpl.render(line_data=line_data, pie_data=pie_data, graph_type=urlparams.graphtype, table=urlparams.table)
         elif urlparams.output_format == 'png':
             chart = None
             if urlparams.graphtype == 'line':
