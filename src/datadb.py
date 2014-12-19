@@ -131,6 +131,10 @@ def initialize_db_object_cache(settings):
             add_db_to_object_cache(object_cache, inst_data['hostname'], inst_data['port'], db,
                                          inst_data['user'], inst_data['password'],
                                          expose_tables, expose_views)
+        print 'initializing finished'
+        for db_uniq in object_cache.cache:
+            print 'Found DB:', db_uniq, ', objects:', len(object_cache.cache[db_uniq])
+            # print object_cache.cache[db_uniq].keys()
 
 
 if __name__ == '__main__':

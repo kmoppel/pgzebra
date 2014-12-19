@@ -17,6 +17,8 @@
         {% if data: %}
             <button type="button" id="tojson" class="btn btn-info btn-xs">Show JSON</button>
             <button type="button" id="dlcsv" class="btn btn-info btn-xs">Download as CSV</button>
+            &nbsp;&nbsp;
+            <!--<button type="button" id="normalize" class="btn btn-info btn-xs">Normalize URL</button>-->
         {% endif %}
         <br />
         <br />
@@ -68,6 +70,15 @@
                 });
             }
 
+            /* TODO
+            $('#normalize').click(function(){
+                alert('normalize');
+                $.ajax({url: '/normalizeurl/' + window.location.href}).done(function(data){
+                    alert(data);
+                    // window.history.pushState("", "", data);
+                });
+            });
+            */
         });
     </script>
 </body>

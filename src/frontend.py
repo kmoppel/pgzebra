@@ -22,6 +22,15 @@ class Frontend(object):
         self.features = features
 
     @cherrypy.expose
+    def normalizeurl(self, *args):
+        if len(args) < 2:
+            raise Exception('Needs a table already')
+        print 'normalized_url args', args
+        urlparams = UrlParams(datadb.object_cache, self.features, *args)
+        print 'normalized_url', urlparams.get_normalized_url()
+        return urlparams.get_normalized_url()
+
+    @cherrypy.expose
     def default(self, *args):
         if len(args) == 0:  # show all dbs
             return self.list_all_dbs()
@@ -34,6 +43,7 @@ class Frontend(object):
         print 'up', urlparams
         sql = urlparams.to_sql()
         print 'sql', sql
+
         data, column_names = datadb.execute_on_db_uniq(urlparams.db_uniq, sql)
         # print 'data', data
         column_info = datadb.get_column_info(urlparams.db_uniq, urlparams.table, column_names)  # TODO highlight PK in UI

@@ -3,10 +3,10 @@ port: 8081
 
 features:
   expose_tables: true
-  expose_views: false
-  expose_all_dbs: true  # all except template and 'postgres' dbs. can be overriden on db level
+  expose_views: false   # WARNING - exposing views can possibly alter data!
+  expose_all_dbs: true  # all except template and 'postgres' dbs. can be overridden on db level
   default_format: html  # csv, json
-  default_order_by: DESC
+  default_order_by: desc
   default_limit: 20
   created_patterns: created,timestamp,time
   modified_patterns: modified,updated,timestamp

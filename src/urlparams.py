@@ -190,10 +190,29 @@ class UrlParams(object):
             sql += ' LIMIT {}'.format(self.limit)
         return sql
 
+    def get_normalized_url(self):
+        url = '/' + '/'.join([self.dbname, self.table, 'output', self.output_format])
+        if self.output_format in ['graph', 'png']:
+            url += '/' + self.graphtype
+            if self.graphkey:
+                url += '/{}/{}'.format('graphkey', self.graphkey)
+            if self.graphbucket:
+                url += '/{}/{}'.format('gbucket', self.graphbucket)
+        for column, op, value in self.filters:
+            url += '/{}/{}/{}'.format(column, op, value)
+        if self.output_format not in ['graph', 'png']:
+            if self.order_by_column:
+                url += ('/{}/{}/{}'.format('orderby', self.order_by_column, self.order_by_direction)).lower()
+            elif self.order_by_direction:
+                url += ('/{}/{}'.format('orderby', self.order_by_direction)).lower()
+        url += '/{}/{}'.format('limit', self.limit)
+        return url
+
     def __str__(self):
         return 'UrlParams: db {}, table {}, columns {}, output_format {}, graphtype {}, gkey {}, gbucket {}'.format(self.db_uniq, self.table,
                                                                                  self.column_names, self.output_format,
                                                                                  self.graphtype, self.graphkey, self.graphbucket)
+
 
 if __name__ == '__main__':
     db_objects_cache = DBObjectsCache()
@@ -212,6 +231,7 @@ if __name__ == '__main__':
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'o', 'm', 'f', 'h', 'col1', '<=', '1')
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'col1', '<=', '100', 'agg', 'count', 'c1', 'agg', 'max', 'c1')
     # up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'l', 'gkey', 'created', 'gbucket', 'hour')
-    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'pie', 'gkey', 'col1')
+    up = UrlParams(db_objects_cache, features, 'pos', 'ta*1', 'f', 'g', 'pie', 'gkey', 'l1')
     print up
+    print up.get_normalized_url()
     print up.to_sql()
