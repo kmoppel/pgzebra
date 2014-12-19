@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>PgZebra :: {{table}}</title>
     <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="//cdn.datatables.net/1.10.4/css/jquery.dataTables.css">
 </head>
@@ -12,6 +13,11 @@
         <h3>{{table}} on <a href="/{{dbname}}">{{dbname}}</a></h3>
         <p class="text-info">Generated SQL <!--<button type="button" class="btn btn-info btn-xs">Copy to Clipboard</button>--></p>
         <textarea style="width: 100%" >{{sql}}</textarea>
+        <br />
+        {% if data: %}
+            <button type="button" id="tojson" class="btn btn-info btn-xs">Show JSON</button>
+            <button type="button" id="dlcsv" class="btn btn-info btn-xs">Download as CSV</button>
+        {% endif %}
         <br />
         <br />
         <table id="data_table" class="display" cellspacing="0" width="100%">
@@ -48,7 +54,21 @@
     <!-- <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script> -->
     <script type="text/javascript">
         $(document).ready(function () {
-             $('#data_table').DataTable();
+            $('#data_table').DataTable();
+
+            var toJSON = $('#tojson');
+            var dlCSV = $('#dlcsv');
+            if (toJSON != null) {
+                toJSON.click(function () {
+                    window.location.href = window.location.href + '/format/json';
+                });
+            }
+            if (dlCSV != null) {
+                dlCSV.click(function () {
+                    window.location.href = window.location.href + '/format/csv';
+                });
+            }
+
         });
     </script>
 </body>

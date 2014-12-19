@@ -1,5 +1,6 @@
 import psycopg2
 import psycopg2.extras
+import psycopg2.extensions
 
 from dbobject_cache import DBObjectsCache
 
@@ -8,6 +9,8 @@ object_cache = None
 ''' :type object_cache: DBObjectsCache'''
 db_credentials = {}
 
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
+psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
 def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     data = []

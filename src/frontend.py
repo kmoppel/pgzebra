@@ -86,7 +86,7 @@ class Frontend(object):
         if urlparams.output_format == 'graph':
             data = json.dumps(data)
             tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it? http://pygal.org/chart_types/#idline-charts
-            return tmpl.render(data=data, graph_type=urlparams.graphtype)
+            return tmpl.render(data=data, graph_type=urlparams.graphtype, table=urlparams.table)
         elif urlparams.output_format == 'png':
             chart = None
             if urlparams.graphtype == 'line':
