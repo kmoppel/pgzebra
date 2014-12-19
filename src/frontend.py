@@ -98,15 +98,11 @@ class Frontend(object):
                 line_data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
                 line_data = json.dumps(line_data)
             else:
-                # pie_data = data
                 for d in data:
                     pie_data.append({'label': str(d[0]), 'data': [d[1]]})
                 pie_data = json.dumps(pie_data)
-                # [
-                # { label: "Val1", data: [1]},
-                # { label: "Val2", data: [3]},
-                # ];
-            tmpl = env.get_template('graph.html')  # maybe create the image file on server and just serve it? http://pygal.org/chart_types/#idline-charts
+
+            tmpl = env.get_template('graph.html')
             return tmpl.render(line_data=line_data, pie_data=pie_data, graph_type=urlparams.graphtype, table=urlparams.table)
         elif urlparams.output_format == 'png':
             chart = None

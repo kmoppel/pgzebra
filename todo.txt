@@ -1,0 +1,18 @@
+bugs
+====
+
+- filter values are lowercased
+- sql injection check
+- is null/not null support for filters
+
+features
+===
+
+ - "join" support. only table needs to be specified, join columns are taken from system catalog e.g. /customer/order/j[oin]/appdomain/shop_id/=/40 ?
+ - long textual columns will be cut shorter
+ - graceful handling of cases when there are name collisions/nothing found - show a list of available/similar ones
+ - simple regex based whitelists/blacklist in config file to provide some table/view access granularity
+ - links to connected tables (based on system catalog FKs)
+ - shard awareness
+ - extra config level of column patterns to be skipped from the output ?
+ - auto time series graphing by "created/modified"
