@@ -119,7 +119,7 @@ class UrlParams(object):
             # /column/>/val
             # TODO add special keywords like today?
             # TODO add also lt,gt,eq
-            if has_next and next_arg in ['<', '<=', '>', '>=', '='] and has_2nd:
+            if has_next and next_arg in ['<', '<=', '>', '>=', '=', 'is'] and has_2nd:
                 column = self.object_cache.get_column(self.db_uniq, self.table, current_arg)
                 self.filters.append((column, next_arg, next_2nd))
                 current_arg_counter += 3
@@ -186,7 +186,7 @@ class UrlParams(object):
                 sql += ' GROUP BY 1 ORDER BY 2 DESC'
         elif not self.aggregations:
             if self.order_by_column:
-                sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction)
+                sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction.upper())
             sql += ' LIMIT {}'.format(self.limit)
         return sql
 

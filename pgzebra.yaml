@@ -25,6 +25,6 @@ instances:
       port: 5432
       user: postgres
       password: postgres
-      databases:
-        - postgres
-        - local_test_db
+#      databases:
+#        - postgres
+#        - local_test_db
