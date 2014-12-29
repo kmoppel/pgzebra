@@ -93,11 +93,18 @@ class Frontend(object):
         line_data = []
         pie_data = []
 
+        limit = int(urlparams.limit)
+        if urlparams.graphtype == 'pie' and len(data) > limit and limit > 1:    # formulate an artificial 'other' group with values > 'limit'
+            sum = 0L
+            for k, v in data[limit-1:]:
+                sum += v
+            data[limit-1:] = [('Other', sum)]
+
         if urlparams.output_format == 'graph':
             if urlparams.graphtype == 'line':
                 line_data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
                 line_data = json.dumps(line_data)
-            else:
+            elif urlparams.graphtype == 'pie':
                 for d in data:
                     pie_data.append({'label': str(d[0]), 'data': [d[1]]})
                 pie_data = json.dumps(pie_data)

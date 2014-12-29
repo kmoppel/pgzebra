@@ -184,7 +184,7 @@ class UrlParams(object):
             if self.graphtype == 'line':
                 sql += ' GROUP BY 1 ORDER BY 1'
             elif self.graphtype == 'pie':
-                sql += ' GROUP BY 1 ORDER BY 2 DESC'
+                sql += ' GROUP BY 1 ORDER BY 2 DESC'    # LIMIT {}'.format(self.limit)
         elif not self.aggregations:
             if self.order_by_columns:
                 if isinstance(self.order_by_columns, list):
@@ -218,10 +218,11 @@ class UrlParams(object):
 
     def __str__(self):
         return 'UrlParams: db = {}, table = {}, columns = {}, filters = {}, order_by_columns = {},' \
-            ' output_format = {}, graphtype = {}, gkey = {}, gbucket = {}'.format(self.db_uniq, self.table,
+            ' output_format = {}, graphtype = {}, gkey = {}, gbucket = {}, limit = {}'.format(self.db_uniq, self.table,
                                                                                  self.column_names, self.filters,
                                                                                  self.order_by_columns, self.output_format,
-                                                                                 self.graphtype, self.graphkey, self.graphbucket)
+                                                                                 self.graphtype, self.graphkey,
+                                                                                 self.graphbucket, self.limit)
 
 
 if __name__ == '__main__':

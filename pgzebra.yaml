@@ -7,7 +7,7 @@ features:
   expose_all_dbs: true  # all except template and 'postgres' dbs. can be overridden on db level
   default_format: html  # csv, json
   default_order_by: desc
-  default_limit: 20
+  default_limit: 10
   created_patterns: created,timestamp,time
   modified_patterns: modified,updated,timestamp
   maximum_text_column_length: 80    # TODO
