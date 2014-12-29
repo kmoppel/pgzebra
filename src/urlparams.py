@@ -19,7 +19,7 @@ class UrlParams(object):
         self.graphbucket = None
         self.limit = features.get('default_limit', 20)
         self.order_by_direction = features.get('default_order_by', 'DESC')
-        self.order_by_column = None
+        self.order_by_columns = []
         self.output_format = features.get('default_format', 'html')
 
         # return args
@@ -35,13 +35,13 @@ class UrlParams(object):
 
         current_arg_counter = 2
         while current_arg_counter < args_count:
-            current_arg = args[current_arg_counter].lower()
+            current_arg = args[current_arg_counter]
             next_arg = None
             next_2nd = None
             has_next = args_count > current_arg_counter + 1
-            if has_next: next_arg = args[current_arg_counter + 1].lower()
+            if has_next: next_arg = args[current_arg_counter + 1]
             has_2nd = args_count > current_arg_counter + 2
-            if has_2nd: next_2nd = args[current_arg_counter + 2].lower()
+            if has_2nd: next_2nd = args[current_arg_counter + 2]
 
             # output_format
             if current_arg == 'f' or current_arg == 'format':
@@ -77,42 +77,43 @@ class UrlParams(object):
             #   : o/[asc|desc]
             #   : o/[c|m]
             #   : o/[c|m][asc|desc]
-            #   : o[rderby]/columnpattern/[asc|desc]
+            #   : o[rderby]/columnpattern[,pattern2]/[asc|desc]
             # TODO multicolumn, comma separated
             if current_arg == 'o' or current_arg == 'orderby':
-                if has_next and next_arg in ['a', 'asc', 'd', 'desc']:
-                        self.order_by_column = self.column_names[0]  # 1st col by default TODO use PK
-                        if next_arg[0] == 'a':
-                            self.order_by_direction = 'ASC'
-                        else:
-                            self.order_by_direction = 'DESC'
-                        current_arg_counter += 2
-                        continue
+                if has_2nd and next_2nd in ['a', 'asc', 'd', 'desc']:
+                    if next_arg in ['c', 'created']:
+                        self.order_by_columns = [self.object_cache.get_column_single(self.db_uniq, self.table, self.features['created_patterns'])]
+                    elif next_arg in ['m', 'modified']:
+                        self.order_by_columns = [self.object_cache.get_column_single(self.db_uniq, self.table, self.features['modified_patterns'])]
+                    else:
+                        self.order_by_columns = self.object_cache.get_column_multi(self.db_uniq, self.table, next_arg)
+                    if not self.order_by_columns:
+                        raise Exception('Order By column {} not found! Known columns: {}'.format(next_arg, self.column_names))
+                    if next_2nd in ['a', 'asc']:
+                        self.order_by_direction = 'ASC' if next_2nd[0] == 'a' else 'DESC'
+                    current_arg_counter += 3
+                    continue
+                elif has_next and next_arg in ['a', 'asc', 'd', 'desc']:
+                    self.order_by_columns = [self.column_names[0]]  # 1st col by default TODO use PK
+                    self.order_by_direction = 'ASC' if next_2nd[0] == 'a' else 'DESC'
+                    current_arg_counter += 2
+                    continue
                 elif has_next and next_arg in ['c', 'created','m', 'modified'] and (not has_2nd or next_2nd not in ['a','asc','d','desc']):
                         if next_arg[0] == 'c':
-                            self.order_by_column = self.object_cache.get_column(self.db_uniq, self.table, self.features['created_patterns'])
+                            self.order_by_columns = [self.object_cache.get_column_single(self.db_uniq, self.table, self.features['created_patterns'])]
                         else:
-                            self.order_by_column = self.object_cache.get_column(self.db_uniq, self.table, self.features['modified_patterns'])
+                            self.order_by_columns = [self.object_cache.get_column_single(self.db_uniq, self.table, self.features['modified_patterns'])]
                         current_arg_counter += 2
                         continue
-                elif has_2nd:
-                    if next_2nd in ['a', 'asc', 'd', 'desc']:
-                        if next_arg in ['c', 'created']:
-                            self.order_by_column = self.object_cache.get_column(self.db_uniq, self.table, self.features['created_patterns'])
-                        elif next_arg in ['m', 'modified']:
-                            self.order_by_column = self.object_cache.get_column(self.db_uniq, self.table, self.features['modified_patterns'])
-                        else:
-                            self.order_by_column = self.object_cache.get_column(self.db_uniq, self.table, next_arg)
-                        if not self.order_by_column:
-                            raise Exception('Order By column {} not found! Known columns: {}'.format(next_arg, self.column_names))
-                        if next_2nd in ['a', 'asc']:
-                            self.order_by_direction = 'ASC'
-                        else:
-                            self.order_by_direction = 'DESC'
-                        current_arg_counter += 3
+                elif has_next and object_cache.get_column_multi(self.db_uniq, self.table, next_arg):    # /o/col1,col2
+                    columns = object_cache.get_column_multi(self.db_uniq, self.table, next_arg)
+                    if columns:
+                        self.order_by_columns = columns
+                        current_arg_counter += 2
                         continue
                 else:
-                    self.order_by_column = self.column_names[0]  # 1st col by default TODO use PK
+                    self.order_by_columns = [self.column_names[0]]  # 1st col by default TODO use PK
+                    current_arg_counter += 1
                     continue
 
             # filters
@@ -120,7 +121,7 @@ class UrlParams(object):
             # TODO add special keywords like today?
             # TODO add also lt,gt,eq
             if has_next and next_arg in ['<', '<=', '>', '>=', '=', 'is'] and has_2nd:
-                column = self.object_cache.get_column(self.db_uniq, self.table, current_arg)
+                column = self.object_cache.get_column_single(self.db_uniq, self.table, current_arg)
                 self.filters.append((column, next_arg, next_2nd))
                 current_arg_counter += 3
                 continue
@@ -135,7 +136,7 @@ class UrlParams(object):
             # simple graphs
             # /gkey/col
             if current_arg in ['gk', 'gkey'] and has_next:
-                self.graphkey = self.object_cache.get_column(self.db_uniq, self.table, next_arg)
+                self.graphkey = self.object_cache.get_column_single(self.db_uniq, self.table, next_arg)
                 current_arg_counter += 2
                 continue
             # /gbucket/1h   [1month,1d,1h,1min]
@@ -173,7 +174,7 @@ class UrlParams(object):
             sql += ' WHERE '
             i = 0
             for fcol, fop, fval in self.filters:
-                col_full_name = self.object_cache.get_column(self.db_uniq, self.table, fcol)
+                col_full_name = self.object_cache.get_column_single(self.db_uniq, self.table, fcol)
                 if not col_full_name:
                     raise Exception('Column {} not found! Known columns: {}'.format(fcol, self.column_names))
                 sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop, fval)
@@ -185,8 +186,15 @@ class UrlParams(object):
             elif self.graphtype == 'pie':
                 sql += ' GROUP BY 1 ORDER BY 2 DESC'
         elif not self.aggregations:
-            if self.order_by_column:
-                sql += ' ORDER BY {} {}'.format(self.order_by_column, self.order_by_direction.upper())
+            if self.order_by_columns:
+                if isinstance(self.order_by_columns, list):
+                    sql += ' ORDER BY '
+                    order_bys = []
+                    for col in self.order_by_columns:
+                        order_bys.append('{} {}'.format(col, self.order_by_direction.upper()))
+                    sql += ', '.join(order_bys)
+                else:
+                    sql += ' ORDER BY {} {}'.format(self.order_by_columns, self.order_by_direction.upper())
             sql += ' LIMIT {}'.format(self.limit)
         return sql
 
@@ -201,16 +209,18 @@ class UrlParams(object):
         for column, op, value in self.filters:
             url += '/{}/{}/{}'.format(column, op, value)
         if self.output_format not in ['graph', 'png']:
-            if self.order_by_column:
-                url += ('/{}/{}/{}'.format('orderby', self.order_by_column, self.order_by_direction)).lower()
+            if self.order_by_columns:
+                url += ('/{}/{}/{}'.format('orderby', ','.join(self.order_by_columns), self.order_by_direction)).lower()
             elif self.order_by_direction:
                 url += ('/{}/{}'.format('orderby', self.order_by_direction)).lower()
         url += '/{}/{}'.format('limit', self.limit)
         return url
 
     def __str__(self):
-        return 'UrlParams: db {}, table {}, columns {}, output_format {}, graphtype {}, gkey {}, gbucket {}'.format(self.db_uniq, self.table,
-                                                                                 self.column_names, self.output_format,
+        return 'UrlParams: db = {}, table = {}, columns = {}, filters = {}, order_by_columns = {},' \
+            ' output_format = {}, graphtype = {}, gkey = {}, gbucket = {}'.format(self.db_uniq, self.table,
+                                                                                 self.column_names, self.filters,
+                                                                                 self.order_by_columns, self.output_format,
                                                                                  self.graphtype, self.graphkey, self.graphbucket)
 
 

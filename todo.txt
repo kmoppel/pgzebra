@@ -1,9 +1,9 @@
 bugs
 ====
 
-- filter values are lowercased
 - sql injection check
 - is null/not null support for filters
+- "limit" support for graphs + skip/aggregate <1% to other
 
 features
 ===

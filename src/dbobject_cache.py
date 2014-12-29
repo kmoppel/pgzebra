@@ -50,10 +50,10 @@ class DBObjectsCache(object):
     def get_all_tables_for_dbuniq(self, dbuniq):
         return self.cache[dbuniq].keys()
 
-    def get_column(self, db, table, col_short):
+    def get_column_single(self, db, table, col_short):
         """ matches fragments to full name. shortest match wins. can be a list of comma separated names"""
         ret_col = None
-        col_short_patterns = col_short.split(',')
+        col_short_patterns = col_short.lower().split(',')
 
         for col_pattern in col_short_patterns:
             col_pattern = re.compile(col_pattern.replace('*', '.*'))
@@ -62,6 +62,19 @@ class DBObjectsCache(object):
                 if col_pattern.search(col_name):
                     if not ret_col or len(ret_col) > col_name:     # taking the shortest. TODO add warning in UI
                         ret_col = col_name
+
+        return ret_col
+
+    def get_column_multi(self, db, table, col_short):
+        """ matches fragments to full name. returns multiple columns preserving order. shortest match wins. can be a list of comma separated names"""
+        ret_col = []
+        col_short_patterns = col_short.lower().split(',')
+
+        for col_pattern in col_short_patterns:
+            col_name = self.get_column_single(db, table, col_pattern)
+            if col_name and col_name not in ret_col:
+                ret_col.append(col_name)
+                continue
 
         return ret_col
 
@@ -79,3 +92,4 @@ if __name__ == '__main__':
                                         DBObjectsCache.formulate_table(['col1', 'col2']))
     print db_objects_cache
     print db_objects_cache.get_dbuniq_and_table_full_name('pos', 'ta*1')
+    print db_objects_cache.get_column_multi('local:5432:postgres', 'public.table1', 'col1,col2')
