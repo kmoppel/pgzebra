@@ -60,7 +60,8 @@ class Frontend(object):
             return self.to_csv(data, column_names, urlparams)
         else:
             tmpl = env.get_template('index.html')
-            return tmpl.render(message=message, dbname=urlparams.dbname, table=urlparams.table, sql=sql, data=data, column_info=column_info)
+            return tmpl.render(message=message, dbname=urlparams.dbname, table=urlparams.table, sql=sql, data=data,
+                               column_info=column_info, max_text_length=self.features['maximum_text_column_length'])
 
     def list_all_dbs(self, output_format='html'):
         db_uniqs = datadb.object_cache.cache.keys()
@@ -78,6 +79,8 @@ class Frontend(object):
 
     def list_all_tables(self, dbname, output_format='html'):
         db_uniq, table = datadb.object_cache.get_dbuniq_and_table_full_name(dbname)
+        if not db_uniq:
+            raise Exception('Database {} not found! Available DBs: {}'.format(dbname, datadb.object_cache.cache.keys()))
         hostname, port, db = tuple(db_uniq.split(':'))
         tables = datadb.object_cache.get_all_tables_for_dbuniq(db_uniq)
         tables.sort()

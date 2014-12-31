@@ -8,6 +8,7 @@ from dbobject_cache import DBObjectsCache
 object_cache = None
 ''' :type object_cache: DBObjectsCache'''
 db_credentials = {}
+config_settings = None
 
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
@@ -108,6 +109,8 @@ def initialize_db_object_cache(settings):
     expose_views = settings['features'].get('expose_views', False)
     expose_all_dbs = settings['features'].get('expose_all_dbs', True)
     instances = settings['instances']
+    global config_settings
+    config_settings = settings
 
     global object_cache
     ''' :type : DBObjectsCache'''

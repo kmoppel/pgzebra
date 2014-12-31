@@ -42,7 +42,7 @@ class DBObjectsCache(object):
                 table_pattern = re.compile(table_short.replace('*', '.*'))
                 for full_table_name in self.cache[ret_db]:
                     if table_pattern.search(full_table_name):
-                        if not ret_table or len(full_table_name) > ret_table:
+                        if not ret_table or len(full_table_name) < ret_table:
                             ret_table = full_table_name
 
         return ret_db, ret_table
