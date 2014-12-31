@@ -2,8 +2,6 @@ bugs
 ====
 
 - sql injection check
-- fill empty holes for linegraphs
-
 
 features to add
 ===

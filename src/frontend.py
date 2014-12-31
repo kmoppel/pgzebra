@@ -16,6 +16,28 @@ from urlparams import UrlParams
 env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__), 'templates')))
 
 
+def fill_timeline_holes(data, bucket, db_uniq):
+    """ fills gaps with zeroes between min and max with help of database
+    data: [(datetime, count),...], bucket: [min|hour|day|week|month]
+      TODO can be actually added to the initial select
+    """
+
+    if len(data) <= 1:
+        return data
+
+    data_as_dict = {}
+    for d in data:
+        data_as_dict[d[0]] = d
+    ret_data = []
+    sql = "select generate_series(%s, %s, '1{}'::interval)".format(bucket)
+    time_series, col_names, error = datadb.execute_on_db_uniq(db_uniq, sql, (data[0][0], data[-1][0]))
+    if error:
+        raise Exception(error)
+    for s in time_series:
+        ret_data.append(data_as_dict.get(s[0], (s[0], 0L)))
+    return ret_data
+
+
 class Frontend(object):
 
     def __init__(self, features):
@@ -107,7 +129,8 @@ class Frontend(object):
 
         if urlparams.output_format == 'graph':
             if urlparams.graphtype == 'line':
-                line_data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in data]
+                line_data = fill_timeline_holes(data, urlparams.graphbucket, urlparams.db_uniq)
+                line_data = [(int(time.mktime(p[0].timetuple()) * 1000), p[1]) for p in line_data]
                 line_data = json.dumps(line_data)
             elif urlparams.graphtype == 'pie':
                 for d in data:
@@ -119,14 +142,19 @@ class Frontend(object):
         elif urlparams.output_format == 'png':
             chart = None
             if urlparams.graphtype == 'line':
-                chart = pygal.Line()
+                line_data = fill_timeline_holes(data, urlparams.graphbucket, urlparams.db_uniq)
+                chart = pygal.Line(width=1000)
                 chart.title = 'Counts of {} over 1{} slots'.format(urlparams.graphkey, urlparams.graphbucket)
                 labels = []
-                for i, d in enumerate(data):
-                    if i % 4 == 0 or i == (len(data)-1):
-                        labels.append(str(d[0]))
+                mod_constant = 10 if len(line_data) < 100 else (30 if len(line_data) < 1000 else 1000)
+                for i, d in enumerate(line_data):
+                    if i == 0 or i == len(line_data)-1:
+                        labels.append(d[0].strftime('%m-%d %H:%M'))
+                        continue
+                    if i % mod_constant == 0:
+                        labels.append(d[0].strftime('%m-%d %H:%M'))
                 chart.x_labels = labels
-                chart.add('Count', [v for t, v in data])
+                chart.add('Count', [v for t, v in line_data])
             elif urlparams.graphtype == 'pie':
                 chart = pygal.Pie()
                 chart.title = 'Distribution of {} values'.format(urlparams.graphkey)
