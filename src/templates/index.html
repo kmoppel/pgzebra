@@ -35,7 +35,7 @@
                 {% for row in data %}
                     <tr>
                         {% for col in row %}
-                        <td>{{col|e}}</td>
+                        <td title="{{col|e}}">{{col|e}}</td>
                         {% endfor %}
                     </tr>
                 {% endfor %}
@@ -54,8 +54,8 @@
             $( "#dialog-message" ).html(cell_text);
             $( "#dialog-message" ).dialog({
               modal: true,
-              minWidth: 300,
-              minHeight: 200,
+              minWidth: 500,
+              minHeight: 300,
               // position: { my: "left top", at: "left bottom", of: link },
               buttons: {
                 Ok: function() {
@@ -88,7 +88,6 @@
                 var cell_text = $(this).html();
                 if (cell_text.length > max_text_length) {
                     $(this).html(cell_text.substring(0,80)+'<a>...</a>');
-                    $(this).attr('title', cell_text);
                     $(this).find('a').click(function(){
                         displayDialog($(this));
                         return false;
