@@ -35,6 +35,7 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
     """ db_uniq = dbname:hostname:port """
     data = []
     column_names = []
+    error = None
     conn = None
     user, password = db_credentials[db_uniq]
     hostname = db_uniq.split(':')[0]
@@ -49,10 +50,11 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
         column_names = [x[0] for x in cur.description]
     except Exception as e:
         print 'ERROR execution failed on {}:{} - {}'.format(hostname, port, e.message)
+        error = e.message
     finally:
         if conn and not conn.closed:
             conn.close()
-    return data, column_names
+    return data, column_names, error
 
 
 def get_column_info(dbuniq, table_name, column_names):

@@ -119,12 +119,32 @@ class UrlParams(object):
             # filters
             # /column/>/val
             # TODO add special keywords like today?
-            # TODO add also lt,gt,eq
-            if has_next and next_arg in ['<', '<=', '>', '>=', '=', 'is'] and has_2nd:
-                column = self.object_cache.get_column_single(self.db_uniq, self.table, current_arg)
-                self.filters.append((column, next_arg, next_2nd))
-                current_arg_counter += 3
-                continue
+
+            if has_next and has_2nd:
+                if next_arg.upper() in ['<', '<=', '>', '>=', '=', 'EQ', 'LT', 'LTE', 'GT', 'GTE',
+                                        'IS', 'IS NOT', 'ISNOT', 'IN']:
+                    next_arg = next_arg.upper()
+                    column = self.object_cache.get_column_single(self.db_uniq, self.table, current_arg)
+                    if not column:
+                        raise Exception('Column {} not found!'.format(current_arg))
+                    if next_arg in ['IS', 'IS NOT', 'ISNOT']:
+                        if next_2nd.upper() != 'NULL':
+                            raise Exception('is/isnot requires NULL as next parameter!')
+                        next_2nd = next_2nd.upper()
+                    print next_arg
+                    next_arg = next_arg.replace('ISNOT', 'IS NOT')
+                    next_arg = next_arg.replace('EQ', '=')
+                    next_arg = next_arg.replace('LTE', '<=')
+                    next_arg = next_arg.replace('LT', '<')
+                    next_arg = next_arg.replace('GTE', '>=')
+                    next_arg = next_arg.replace('GT', '>')
+                    print next_arg
+                    if next_arg == 'IN':
+                        self.filters.append((column, next_arg, '(' + next_2nd + ')'))
+                    else:
+                        self.filters.append((column, next_arg, next_2nd))
+                    current_arg_counter += 3
+                    continue
 
             # simple aggregations
             # count, sum, min, max
@@ -177,7 +197,7 @@ class UrlParams(object):
                 col_full_name = self.object_cache.get_column_single(self.db_uniq, self.table, fcol)
                 if not col_full_name:
                     raise Exception('Column {} not found! Known columns: {}'.format(fcol, self.column_names))
-                sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop, fval)
+                sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop.upper(), fval)
                 i += 1
 
         if self.graphkey:

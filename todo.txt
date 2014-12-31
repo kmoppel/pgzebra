@@ -2,11 +2,10 @@ bugs
 ====
 
 - sql injection check
-- is null/not null support for filters
 - fill empty holes for linegraphs
 
 
-features
+features to add
 ===
 
  - "join" support. only table needs to be specified, join columns are taken from system catalog e.g. /customer/order/j[oin]/appdomain/shop_id/=/40 ?

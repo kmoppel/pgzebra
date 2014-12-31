@@ -44,7 +44,9 @@ class Frontend(object):
         sql = urlparams.to_sql()
         print 'sql', sql
 
-        data, column_names = datadb.execute_on_db_uniq(urlparams.db_uniq, sql)
+        data, column_names, error = datadb.execute_on_db_uniq(urlparams.db_uniq, sql)
+        if error:
+            raise Exception('Error executing the query: ' + error)
         # print 'data', data
         column_info = datadb.get_column_info(urlparams.db_uniq, urlparams.table, column_names)  # TODO highlight PK in UI
 
