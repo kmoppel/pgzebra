@@ -95,7 +95,7 @@ class UrlParams(object):
                     continue
                 elif has_next and next_arg in ['a', 'asc', 'd', 'desc']:
                     self.order_by_columns = [self.column_names[0]]  # 1st col by default TODO use PK
-                    self.order_by_direction = 'ASC' if next_2nd[0] == 'a' else 'DESC'
+                    self.order_by_direction = 'ASC' if next_arg[0] == 'a' else 'DESC'
                     current_arg_counter += 2
                     continue
                 elif has_next and next_arg in ['c', 'created','m', 'modified'] and (not has_2nd or next_2nd not in ['a','asc','d','desc']):
