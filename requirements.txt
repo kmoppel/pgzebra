@@ -2,8 +2,8 @@ CherryPy==3.2.4
 Jinja2==2.7
 psycopg2>=2.4
 pyyaml>=3.10
-# below only needed if using /format/png/
-lxml>=3.3.3
-tinycss>=0.3
-cssselect>=0.9.1
-pygal>=1.6.1
+# below only needed if using /format/png e.g. fully embedabble images
+# lxml>=3.3.3
+# tinycss>=0.3
+# cssselect>=0.9.1
+# pygal>=1.6.1
