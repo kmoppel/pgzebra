@@ -4,7 +4,6 @@ import os
 import json
 import csv
 import time
-import pygal
 from cherrypy.lib import file_generator
 import StringIO
 import random
@@ -143,6 +142,7 @@ class Frontend(object):
             chart = None
             if urlparams.graphtype == 'line':
                 line_data = fill_timeline_holes(data, urlparams.graphbucket, urlparams.db_uniq)
+                import pygal
                 chart = pygal.Line(width=1000)
                 chart.title = 'Counts of {} over 1{} slots'.format(urlparams.graphkey, urlparams.graphbucket)
                 labels = []
@@ -156,6 +156,7 @@ class Frontend(object):
                 chart.x_labels = labels
                 chart.add('Count', [v for t, v in line_data])
             elif urlparams.graphtype == 'pie':
+                import pygal
                 chart = pygal.Pie()
                 chart.title = 'Distribution of {} values'.format(urlparams.graphkey)
                 for key, count in data:

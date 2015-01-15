@@ -149,7 +149,8 @@ class UrlParams(object):
             # simple aggregations
             # count, sum, min, max
             if current_arg == 'agg' and has_2nd and next_arg in ['count', 'sum', 'min', 'max']:
-                self.aggregations.append((next_arg, next_2nd))
+                agg_col = self.object_cache.get_column_single(self.db_uniq, self.table, next_2nd)
+                self.aggregations.append((next_arg, agg_col))
                 current_arg_counter += 3
                 continue
 
