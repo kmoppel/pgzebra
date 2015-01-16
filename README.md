@@ -19,6 +19,67 @@ Idea also tries to minimize typing by providing some convenience features like m
 * Flot Charts
 * Bootstrap
 
+
+## Input syntax [ URL based ]
+
+
+#### Basic usage
+
+` / somedb / sometable `
+
+
+#### Filtering
+
+` / somedb / sometable / somecolumn / comparison_operator / value `
+
+* all URL segments of 3 [when 1st seg. not conflicting with a few reserved keywords ] are handled as filter
+* multiple filters possible
+
+#### Limiting
+
+` / somedb / sometable / l[imit] / value `
+
+
+#### Ordering
+
+` / somedb / sometable / o[rderby] ` - 1st column will be used + default sort order from the config
+
+` / somedb / sometable / o[rderby] / [ a[sc] | d[esc] ] ` - 1st column with explicit ordering
+
+` / somedb / sometable / o[rderby] / somecol / [ a[sc] | d[esc] ] ` - single column ordering with explicit ordering
+
+` / somedb / sometable / o[rderby] / somecol1[,somecol2,..] ` - multicolumn ordering
+
+
+#### Simple aggregations
+
+` / somedb / sometable / agg / agg_func / somecol ` - where agg_func in ['count', 'sum', 'min', 'max']
+
+
+#### Simple graphing
+
+###### Line graph of single column's counts over time, with month to minute grouping ($graphbucket param). The $graphkey column needs to be of type date/timestamp!
+
+` / somedb / sometable / f[ormat] / g[raph] / l[ine] / [ gk | graphkey] / temporal_col / [ gb | graphbucket ] / [month|day|hour|min|minute] `
+
+###### Pie graph showing distribution of provided column's values. The column can be of any type.
+
+` / somedb / sometable / f[ormat] / g[raph] / p[pie] / [ gk | graphkey] / somecol `
+
+` / somedb / sometable / f[ormat] / g[raph] / p[pie] / [ gk | graphkey] / somecol / l[imit] / value`
+
+**NB! For aggregates and graphs also filters can (and should) be used.** For pie graphs "limit" also works.
+
+
+## Output formats
+
+* HTML table [ default ]
+* JSON - ` / f[ormat] / j[son] `
+* CSV - ` / f[ormat] / c[sv] `
+* Graph - HTML + JS based - ` / f[ormat] / g[raph] `
+* Graph - pure PNG ` / f[ormat] / png `
+
+
 ## Sample inputs and outputs (output of query by default shown in the datagrid)
  
 **/somedb/tablename_excerpt**
@@ -52,7 +113,7 @@ Default "LIMIT" (here 10) comes also from the pgzebra.yaml
 The same as previous in longer format + explicit "LIMIT". NB! Default "ORDER BY" direction is "DESC" - can be changed from config file
 
 
-**/somedb/order/o/a[sc]**
+**/somedb/order/o/a**
 
 > SELECT o_id,colX,.. FROM schema.order_history ORDER BY o_id ASC LIMIT 10
 
@@ -71,8 +132,17 @@ Simple aggregates support is provided. Multiple aggregates can be used in one qu
 * max
 
 
-** / somedb / order / f[ormat] / g[raph] / line / [gk|graphkey] / created / [gb|graphbucket] / [month|day|hour|min|minute] / created / > / current_date
+**/somedb/order/f/g/line/gk/created/gb/month/created/>/current_date**
 
-> SELECT ...
+> SELECT date_trunc('month', oh_created), count(*) FROM order_history WHERE oh_created > current_date GROUP BY 1 ORDER BY 1
 
-Displays a "line graph" of counts of "graphkey" over time.
+Displays a "line graph" of counts of "graphkey" over timeslots specified by "graphbucket" column. Filtering is possible as usual.
+
+NB! Missing buckets will be filled with 0-s.
+
+
+**/somedb/order/f/g/pie/gk/country/created/>/current_date**
+
+> SELECT oh_country, count(*) FROM order_history WHERE oh_created > current_date GROUP BY 1 ORDER BY 2 DESC LIMIT 10
+
+NB! Displays a "pie graph" of $graphkey's distribution. Values not fitting into "limit" will be summarized into "Other".
