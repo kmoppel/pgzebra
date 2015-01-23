@@ -1,3 +1,4 @@
+import re
 from dbobject_cache import DBObjectsCache
 
 
@@ -204,6 +205,14 @@ class UrlParams(object):
                     fval = fval.replace('current_day', "current_date")
                     fval = fval.replace('current_week', "date_trunc('week', now())")
                     fval = fval.replace('current_month', "date_trunc('month', now())")
+                    sql += "{}{} {} {}".format(and_prefix, col_full_name, fop.upper(), fval)
+                elif re.match('^(-|\+)+(\d)+(days|hours|minutes|seconds)+$', fval, re.I):
+                    m = re.match('^(-|\+)+(\d)+(days|hours|minutes|seconds)+$', fval, re.I)
+                    sign = m.groups()[0]
+                    value = m.groups()[1]
+                    unit = m.groups()[2]
+                    today = 'now()' if unit != 'days' else 'current_date'
+                    fval = "({} {} '{} {}'::interval)".format(today, sign, value, unit)
                     sql += "{}{} {} {}".format(and_prefix, col_full_name, fop.upper(), fval)
                 else:
                     sql += '{}{} {} %s'.format(and_prefix, col_full_name, fop.upper())
