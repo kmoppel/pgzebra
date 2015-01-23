@@ -1,13 +1,11 @@
 bugs
 ====
 
-- sql injection check
 
 features to add
 ===
 
- - "join" support. only table needs to be specified, join columns are taken from system catalog e.g. /customer/order/j[oin]/appdomain/shop_id/=/40 ?
- - long textual columns will be cut shorter
+ - automatic / forced reload of DB schema
  - graceful handling of cases when there are name collisions/nothing found - show a list of available/similar ones
  - simple regex based whitelists/blacklist in config file to provide some table/view access granularity
  - links to connected tables (based on system catalog FKs)

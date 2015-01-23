@@ -1,6 +1,7 @@
 import psycopg2
 import psycopg2.extras
 import psycopg2.extensions
+import re
 
 from dbobject_cache import DBObjectsCache
 
@@ -103,16 +104,35 @@ def add_db_to_object_cache(object_cache, host, port, db, user, password, tables=
         db_credentials['{}:{}:{}'.format(host, port, db)] = (user, password)
 
 
+def apply_regex_filters_to_list(input_list, filter_pattern_list, filter_type):
+    if not filter_pattern_list:
+        return input_list
+    white_ret = set()
+    black_ret = set(input_list)
+    if filter_type not in ['whitelist', 'blacklist']:
+        raise Exception('Invalid input: ' + filter_type)
+    for pattern in filter_pattern_list:
+        p = re.compile(pattern)
+        if filter_type == 'whitelist':
+            white_ret.update(filter(lambda x: p.match(x), input_list))
+        else:
+            black_ret.difference_update(filter(lambda x: p.match(x), black_ret))
+
+    return list(black_ret) if filter_type == 'blacklist' else list(white_ret)
+
+
 def initialize_db_object_cache(settings):
     """
     read and store all tables/columns for all db
     """
-    expose_tables = settings['features'].get('expose_tables', True)
-    expose_views = settings['features'].get('expose_views', False)
-    expose_all_dbs = settings['features'].get('expose_all_dbs', True)
     instances = settings['instances']
     global config_settings
     config_settings = settings
+    expose_tables = settings['features'].get('expose_tables', True)
+    expose_views = settings['features'].get('expose_views', False)
+    expose_all_dbs = settings['features'].get('expose_all_dbs', True)
+    dbname_blacklist = settings['dbname_visibility_control'].get('dbname_blacklist', [])
+    dbname_whitelist = settings['dbname_visibility_control'].get('dbname_whitelist', [])
 
     global object_cache
     ''' :type : DBObjectsCache'''
@@ -128,6 +148,10 @@ def initialize_db_object_cache(settings):
         if 'databases' not in inst_data:
             dbs = get_list_of_dbs_on_instance(inst_data['hostname'], inst_data['port'], 'postgres',
                                               inst_data['user'], inst_data['password'])
+            if dbname_whitelist:
+                dbs = apply_regex_filters_to_list(dbs, dbname_whitelist, 'whitelist')
+            if dbname_blacklist:
+                dbs = apply_regex_filters_to_list(dbs, dbname_blacklist, 'blacklist')
         else:
             dbs = inst_data['databases']
 
@@ -144,7 +168,9 @@ def initialize_db_object_cache(settings):
 
 if __name__ == '__main__':
     # print get_list_of_dbs_on_instance('localhost', 5432, 'postgres', 'postgres', 'postgres')
-    object_cache = DBObjectsCache()
-    add_db_to_object_cache(object_cache, 'localhost', 5432, 'postgres', 'postgres', 'postgres')
-    print object_cache
-    print object_cache.get_dbuniq_and_table_full_name('pos', 'fk')
+    # object_cache = DBObjectsCache()
+    # add_db_to_object_cache(object_cache, 'localhost', 5432, 'postgres', 'postgres', 'postgres')
+    # print object_cache
+    # print object_cache.get_dbuniq_and_table_full_name('pos', 'fk')
+    print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'whitelist')
+    print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'blacklist')

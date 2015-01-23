@@ -11,11 +11,17 @@ features:
   created_patterns: created,timestamp,time
   modified_patterns: modified,updated,timestamp
   maximum_text_column_length: 80
-# TODO
-#  whitelist:
-#    - pattern1
-#  blacklist:
-#    - pattern1
+
+
+# applies only when no databases are specified for an instance
+dbname_visibility_control:
+    dbname_whitelist:
+      - .*
+    dbname_blacklist:
+      - .*_old(_.*)?$
+      - ^temp.*
+      - .*temp$
+      - .*_test$
 
 
 instances:
