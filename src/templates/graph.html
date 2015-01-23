@@ -31,7 +31,11 @@
                             }
                     },
                     legend: {
-                        show: false
+                        show: false,
+                        labelFormatter: function(label, series) {
+                            // series is the series object for the label
+                            return '' + label + ' - ' + series.data[0][1];
+                        }
                     }
                 }
                 $.plot($("#graph_placeholder"), pie_data, options);
