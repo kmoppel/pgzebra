@@ -156,7 +156,7 @@ class UrlParams(object):
                 self.graphkey = self.object_cache.get_column_single(self.db_uniq, self.table, next_arg)
                 current_arg_counter += 2
                 continue
-            # /gbucket/1h   [1month,1d,1h,1min]
+            # /gbucket/[month,day,hour,minute]
             if current_arg in ['gb', 'gbucket'] and has_next and next_arg in ['month', 'day', 'hour', 'min', 'minute']:
                 self.graphbucket = next_arg
                 current_arg_counter += 2
@@ -166,9 +166,23 @@ class UrlParams(object):
             print 'WARNING: did not make use of ', current_arg
             current_arg_counter += 1
 
-    def do_pre_sql_check(self): # TODO sql injection analyze. use psycopg2 mogrify?
-        if self.graphtype == 'line' and not self.graphbucket:
-            raise Exception('gbucket/gb parameter missing! [ allowed values: month, week, day, hour, minute]')
+    def do_pre_sql_check(self):
+        if self.graphtype:
+            if self.features.get('auto_graphing', False):
+                if not self.graphbucket:
+                    self.graphbucket = self.features.get('auto_graphing_bucket')
+                if not self.graphkey and self.graphtype == 'line':
+                    self.graphkey = self.object_cache.get_column_single(self.db_uniq, self.table, self.features.get('created_patterns'))
+                if not self.filters:
+                    if self.graphtype == 'line':
+                        self.filters.append((self.graphkey, '>=', self.features.get('auto_graphing_time_filter')))
+                    else:
+                        time_col = self.object_cache.get_column_single(self.db_uniq, self.table, self.features.get('created_patterns'))
+                        self.filters.append((time_col, '>=', self.features.get('auto_graphing_time_filter')))
+            if not self.graphkey:
+                raise Exception('graphkey/gk parameter missing! [should be timestamp]')
+            if self.graphtype == 'line' and not self.graphbucket:
+                raise Exception('gbucket/gb parameter missing! [ allowed values: month, week, day, hour, minute]')
 
     def to_sql(self):
         self.do_pre_sql_check()

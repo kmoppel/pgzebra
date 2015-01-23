@@ -7,8 +7,7 @@ features to add
 
  - automatic / forced reload of DB schema
  - graceful handling of cases when there are name collisions/nothing found - show a list of available/similar ones
- - simple regex based whitelists/blacklist in config file to provide some table/view access granularity
+ - regex based whitelists/blacklist in config file to provide some table/view access granularity [done for databases]
  - links to connected tables (based on system catalog FKs)
  - shard awareness
  - extra config level of column patterns to be skipped from the output ?
- - auto time series graphing by "created/modified"

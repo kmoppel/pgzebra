@@ -137,7 +137,8 @@ class Frontend(object):
                 pie_data = json.dumps(pie_data)
 
             tmpl = env.get_template('graph.html')
-            return tmpl.render(line_data=line_data, pie_data=pie_data, graph_type=urlparams.graphtype, table=urlparams.table)
+            return tmpl.render(line_data=line_data, pie_data=pie_data, graph_type=urlparams.graphtype, table=urlparams.table,
+                               graph_key=urlparams.graphkey, graph_bucket=urlparams.graphbucket)
         elif urlparams.output_format == 'png':
             chart = None
             if urlparams.graphtype == 'line':

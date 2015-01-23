@@ -11,7 +11,9 @@ features:
   created_patterns: created,timestamp,time
   modified_patterns: modified,updated,timestamp
   maximum_text_column_length: 80
-
+  auto_graphing: on # first column from created_patterns will be used for line
+  auto_graphing_bucket: hour
+  auto_graphing_time_filter: current_date
 
 # applies only when no databases are specified for an instance
 dbname_visibility_control:
