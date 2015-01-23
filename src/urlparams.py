@@ -119,8 +119,6 @@ class UrlParams(object):
 
             # filters
             # /column/>/val
-            # TODO add special keywords like today?
-
             if has_next and has_2nd:
                 if next_arg.upper() in ['<', '<=', '>', '>=', '=', 'EQ', 'LT', 'LTE', 'GT', 'GTE',
                                         'IS', 'IS NOT', 'ISNOT', 'IN', 'ANY']:
@@ -200,8 +198,10 @@ class UrlParams(object):
                 and_prefix = ' AND ' if i > 0 else ''
                 if fop == 'ANY':
                     sql += "{}{} = ANY('{{{}}}')".format(and_prefix, col_full_name, fval)
-                elif fval.lower() in ['current_date', 'current_day', 'current_timestamp', 'now', 'current_week', 'current_month']:
+                elif fval.lower() in ['current_month', 'current_week', 'current_date', 'current_day', 'today',
+                                      'current_timestamp', 'now']:
                     fval = fval.replace('now', "now()")
+                    fval = fval.replace('today', "current_date")
                     fval = fval.replace('current_day', "current_date")
                     fval = fval.replace('current_week', "date_trunc('week', now())")
                     fval = fval.replace('current_month', "date_trunc('month', now())")
