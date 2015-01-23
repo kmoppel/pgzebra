@@ -34,6 +34,10 @@ Idea also tries to minimize typing by providing some convenience features like m
 
 * all URL segments of 3 [when 1st seg. not conflicting with a few reserved keywords ] are handled as filter
 * multiple filters possible
+* for date columns some special shortcuts can be used
+
+    - current_month (beginning date), current_week (beginning date), current_day/current_date, current_timestamp/now
+    - -/+X(days|hours|minutes|seconds)  e.g. - / created / >= /-5days => WHERE order_created >= current_date - '5 days'::interval
 
 #### Limiting
 
