@@ -122,7 +122,7 @@ class UrlParams(object):
 
             if has_next and has_2nd:
                 if next_arg.upper() in ['<', '<=', '>', '>=', '=', 'EQ', 'LT', 'LTE', 'GT', 'GTE',
-                                        'IS', 'IS NOT', 'ISNOT', 'IN']:
+                                        'IS', 'IS NOT', 'ISNOT', 'IN', 'ANY']:
                     next_arg = next_arg.upper()
                     column = self.object_cache.get_column_single(self.db_uniq, self.table, current_arg)
                     if not column:
@@ -130,19 +130,16 @@ class UrlParams(object):
                     if next_arg in ['IS', 'IS NOT', 'ISNOT']:
                         if next_2nd.upper() != 'NULL':
                             raise Exception('is/isnot requires NULL as next parameter!')
-                        next_2nd = next_2nd.upper()
-                    print next_arg
+                        next_2nd = None
+                    # print next_arg
                     next_arg = next_arg.replace('ISNOT', 'IS NOT')
+                    next_arg = next_arg.replace('IN', 'ANY')
                     next_arg = next_arg.replace('EQ', '=')
                     next_arg = next_arg.replace('LTE', '<=')
                     next_arg = next_arg.replace('LT', '<')
                     next_arg = next_arg.replace('GTE', '>=')
                     next_arg = next_arg.replace('GT', '>')
-                    print next_arg
-                    if next_arg == 'IN':
-                        self.filters.append((column, next_arg, '(' + next_2nd + ')'))
-                    else:
-                        self.filters.append((column, next_arg, next_2nd))
+                    self.filters.append((column, next_arg, next_2nd))
                     current_arg_counter += 3
                     continue
 
@@ -176,6 +173,7 @@ class UrlParams(object):
 
     def to_sql(self):
         self.do_pre_sql_check()
+        params = []
         sql = 'SELECT '
         if self.aggregations:
             i = 0
@@ -198,7 +196,12 @@ class UrlParams(object):
                 col_full_name = self.object_cache.get_column_single(self.db_uniq, self.table, fcol)
                 if not col_full_name:
                     raise Exception('Column {} not found! Known columns: {}'.format(fcol, self.column_names))
-                sql += '{}{} {} {}'.format((' AND ' if i > 0 else ''), col_full_name, fop.upper(), fval)
+                and_prefix = ' AND ' if i > 0 else ''
+                if fop == 'ANY':
+                    sql += "{}{} = ANY('{{{}}}')".format(and_prefix, col_full_name, fval)
+                else:
+                    sql += '{}{} {} %s'.format(and_prefix, col_full_name, fop.upper())
+                    params.append(fval)
                 i += 1
 
         if self.graphkey:
@@ -212,12 +215,12 @@ class UrlParams(object):
                     sql += ' ORDER BY '
                     order_bys = []
                     for col in self.order_by_columns:
-                        order_bys.append('{} {}'.format(col, self.order_by_direction.upper()))
+                        order_bys.append('{} {} NULLS LAST'.format(col, self.order_by_direction.upper()))
                     sql += ', '.join(order_bys)
                 else:
-                    sql += ' ORDER BY {} {}'.format(self.order_by_columns, self.order_by_direction.upper())
+                    sql += ' ORDER BY {} {}  NULLS LAST'.format(self.order_by_columns, self.order_by_direction.upper())
             sql += ' LIMIT {}'.format(self.limit)
-        return sql
+        return sql, params
 
     def get_normalized_url(self):
         url = '/' + '/'.join([self.dbname, self.table, 'output', self.output_format])
