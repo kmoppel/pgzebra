@@ -199,6 +199,12 @@ class UrlParams(object):
                 and_prefix = ' AND ' if i > 0 else ''
                 if fop == 'ANY':
                     sql += "{}{} = ANY('{{{}}}')".format(and_prefix, col_full_name, fval)
+                elif fval.lower() in ['current_date', 'current_day', 'current_timestamp', 'now', 'current_week', 'current_month']:
+                    fval = fval.replace('now', "now()")
+                    fval = fval.replace('current_day', "current_date")
+                    fval = fval.replace('current_week', "date_trunc('week', now())")
+                    fval = fval.replace('current_month', "date_trunc('month', now())")
+                    sql += "{}{} {} {}".format(and_prefix, col_full_name, fop.upper(), fval)
                 else:
                     sql += '{}{} {} %s'.format(and_prefix, col_full_name, fop.upper())
                     params.append(fval)
