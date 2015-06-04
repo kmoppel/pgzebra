@@ -99,7 +99,7 @@ The simplest usecase. database/table names don't have to be precise, only excerp
 
 Usage of filtering. All groups of 3 parameters [starting with non-reserved keywords] are handled as filters. Multiple filters possible.
 
-WARNING! Currently filters are passed to the DB "as is" i.e. SQL injection is possible.
+NB! Currently filters are passed to the DB "as is" but SQL injection shouldn't still be possible due to countermeasures.
 
 **/somedb/order/created/>/current_date/o/c**
     

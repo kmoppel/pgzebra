@@ -22,6 +22,7 @@ def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     try:
         conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute('set transaction read only')
         cur.execute(sql, params)
         data = cur.fetchall()
     except Exception as e:
@@ -46,6 +47,7 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
         conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
         # cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur = conn.cursor()
+        cur.execute('set transaction read only')
         cur.execute(sql, params)
         data = cur.fetchall()
         column_names = [x[0] for x in cur.description]
