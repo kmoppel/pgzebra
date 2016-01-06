@@ -14,6 +14,7 @@ config_settings = None
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODE)
 psycopg2.extensions.register_type(psycopg2.extensions.UNICODEARRAY)
 
+
 def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     data = []
     conn = None
@@ -33,7 +34,7 @@ def execute_on_host(hostname, port, dbname, user, password, sql, params=None):
     return data
 
 
-def execute_on_db_uniq(db_uniq, sql, params=None):
+def execute_on_db_uniq(db_uniq, sql, params=None, dict=False):
     """ db_uniq = dbname:hostname:port """
     data = []
     column_names = []
@@ -45,8 +46,10 @@ def execute_on_db_uniq(db_uniq, sql, params=None):
     dbname = db_uniq.split(':')[2]
     try:
         conn = psycopg2.connect(host=hostname, port=port, dbname=dbname, user=user, password=password, connect_timeout='3')
-        # cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur = conn.cursor()
+        if dict:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        else:
+            cur = conn.cursor()
         cur.execute('set transaction read only')
         cur.execute(sql, params)
         data = cur.fetchall()
@@ -64,37 +67,75 @@ def get_column_info(dbuniq, table_name, column_names):
     ret = []
     for cn in column_names:
         ci = {'column_name': cn}
-        for cache_info in object_cache.cache[dbuniq][table_name]:
+        for cache_info in object_cache.cache[dbuniq][table_name]['columns']:
             if cn == cache_info['column_name']:
                 ci = cache_info
                 break
         ret.append(ci)
     return ret
 
+
 def get_list_of_dbs_on_instance(host, port, db, user, password):
-    sql = """select datname from pg_database where not datistemplate and datname != 'postgres'"""
+    sql = """select datname from pg_database where not datistemplate"""
     return [x['datname'] for x in execute_on_host(host, port, db, user, password, sql)]
+
+
+def get_children_for_dbuniq_table(db_uniq, table):
+    sql = """
+        with recursive q_children_oids(oid) as (
+          select
+            inhrelid as oid
+          from
+            pg_catalog.pg_inherits
+          where
+            inhparent = regclass(%s)::oid
+          union all
+          select
+            i.inhrelid
+          from
+            q_children_oids q
+            join
+            pg_catalog.pg_inherits i on q.oid = i.inhparent
+        )
+        select
+          quote_ident(n.nspname)||'.'||quote_ident(c.relname) as full_table_name,
+          coalesce((select array_agg(attname::text order by attnum) from pg_attribute where attrelid = c.oid and attnum >= 0 and not attisdropped), '{}'::text[])  as columns,
+          (select count(*) from pg_inherits where inhparent = c.oid) as children_count,
+          (select count(*) from pg_inherits where inhrelid = c.oid) > 0 as is_inherited
+        from
+          pg_class c
+          join
+          pg_namespace n on c.relnamespace = n.oid
+        where
+          c.oid in (select oid from q_children_oids)
+          and c.relkind in ('r', 'v')
+        order by
+          1
+    """
+    data, column_names, error = execute_on_db_uniq(db_uniq, sql, (table,), dict=True)
+    # print data, column_names, error
+    return [(x['full_table_name'], x) for x in data]
 
 
 def add_db_to_object_cache(object_cache, host, port, db, user, password, tables=True, views=False):
     sql = """
-    select
-     quote_ident(t.table_schema)||'.'||quote_ident(t.table_name) as full_table_name,
-     array_agg(c.column_name::text order by ordinal_position) as columns
-    from
-      information_schema.tables t
-      left join
-      information_schema.columns c
-      on t.table_schema = c.table_schema and t.table_name = c.table_name
-    where
-      t.table_type = ANY(%s)
-      and not t.table_schema in ('information_schema', 'pg_catalog')
-    group by
-      1
+        select
+         quote_ident(n.nspname)||'.'||quote_ident(c.relname) as full_table_name,
+         coalesce((select array_agg(attname::text order by attnum) from pg_attribute where attrelid = c.oid and attnum >= 0 and not attisdropped), '{}'::text[])  as columns,
+         (select count(*) from pg_inherits where inhparent = c.oid) as children_count,
+         (select count(*) from pg_inherits where inhrelid = c.oid) > 0 as is_inherited
+        from
+          pg_class c
+          join
+          pg_namespace n on c.relnamespace = n.oid
+        where
+          c.relkind = ANY(%s)
+          --c.relkind in ('r', 'v')
+          and not n.nspname in ('information_schema', 'pg_catalog')
     """
     table_type = []
-    if tables: table_type.append('BASE TABLE')
-    if views: table_type.append('VIEW')
+    if tables: table_type.append('r')
+    if views: table_type.extend(('v', 'm'))
     if len(table_type) == 0:
         raise Exception('Views and/or Tables exposing must be enabled!')
 
@@ -102,7 +143,7 @@ def add_db_to_object_cache(object_cache, host, port, db, user, password, tables=
     for td in data:
         # print td
         object_cache.add_table_to_cache(host, port, db,
-                                        td['full_table_name'], DBObjectsCache.formulate_table(td['columns']))   # TODO
+                                        td['full_table_name'], DBObjectsCache.formulate_table(td))   # TODO
         db_credentials['{}:{}:{}'.format(host, port, db)] = (user, password)
 
 
@@ -170,9 +211,10 @@ def initialize_db_object_cache(settings):
 
 if __name__ == '__main__':
     # print get_list_of_dbs_on_instance('localhost', 5432, 'postgres', 'postgres', 'postgres')
-    # object_cache = DBObjectsCache()
-    # add_db_to_object_cache(object_cache, 'localhost', 5432, 'postgres', 'postgres', 'postgres')
+    object_cache = DBObjectsCache()
+    add_db_to_object_cache(object_cache, 'localhost', 5432, 'postgres', 'postgres', 'postgres')
     # print object_cache
     # print object_cache.get_dbuniq_and_table_full_name('pos', 'fk')
-    print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'whitelist')
-    print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'blacklist')
+    print get_children_for_dbuniq_table('postgres:localhost:5432', 'public.p1')
+    # print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'whitelist')
+    # print apply_regex_filters_to_list(['local_db', 'local_db_temp'], ['.*_temp'], 'blacklist')

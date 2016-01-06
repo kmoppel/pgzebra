@@ -4,7 +4,9 @@ import re
 db_objects_cache = None   # global cache for table/column names, FKs
 """
 {
-'db1:host:port': {'sch1.table1': [ { 'column_name': 'col1', 'is_pk': True, 'fks':[{'tableref':'tblx', 'colref'}, ] }}}
+'db1:host:port': {'sch1.table1': {
+    'columns': [ {'column_name': 'col1', 'is_pk': True, 'fks':[{'tableref':'tblx', 'colref': ''}]} ],
+    'children_count': 1}}
 }
 """
 
@@ -21,11 +23,12 @@ class DBObjectsCache(object):
 
 
     @staticmethod
-    def formulate_table(columns):   # TODO extend
+    def formulate_table(table_data):   # TODO extend
         columns_with_additional_info = []
-        for col in columns:
+        for col in table_data['columns']:
             columns_with_additional_info.append({'column_name': col, 'is_pk': False, 'fks': None})
-        return columns_with_additional_info
+        return {'columns': columns_with_additional_info, 'children_count': table_data['children_count'],
+                'is_inherited': table_data['is_inherited']}
 
     def get_dbuniq_and_table_full_name(self, db_short, table_short=None):
         ret_db = None
@@ -47,8 +50,14 @@ class DBObjectsCache(object):
 
         return ret_db, ret_table
 
-    def get_all_tables_for_dbuniq(self, dbuniq):
-        return self.cache[dbuniq].keys()
+    def get_all_tables_for_dbuniq(self, dbuniq,  no_inherits=True):
+        if no_inherits:
+            ret = []
+            for tbl, data in self.cache[dbuniq].items():
+                if not data.get('is_inherited'):
+                    ret.append((tbl, data))
+            return ret
+        return self.cache[dbuniq].items()
 
     def get_column_single(self, db, table, col_short):
         """ matches fragments to full name. shortest match wins. can be a list of comma separated names"""
@@ -57,7 +66,7 @@ class DBObjectsCache(object):
 
         for col_pattern in col_short_patterns:
             col_pattern = re.compile(col_pattern.replace('*', '.*'))
-            for col in self.cache[db][table]:
+            for col in self.cache[db][table]['columns']:
                 col_name = col['column_name']
                 if col_pattern.search(col_name):
                     if not ret_col or len(ret_col) > col_name:     # taking the shortest. TODO add warning in UI
@@ -78,10 +87,8 @@ class DBObjectsCache(object):
 
         return ret_col
 
-
     def __str__(self):
         return str(self.cache)
-
 
 
 if __name__ == '__main__':
@@ -89,7 +96,14 @@ if __name__ == '__main__':
     # print DBObjectsCache.formulate_table(['col1', 'col2'])
     db_objects_cache.add_table_to_cache('local', 5432, 'postgres',
                                         'public.table1',
-                                        DBObjectsCache.formulate_table(['col1', 'col2']))
+                                        DBObjectsCache.formulate_table({'columns': ['col1', 'col2'], 'children_count': 1,
+                                                                       'is_inherited': False}))
+    db_objects_cache.add_table_to_cache('local', 5432, 'postgres',
+                                        'public.table1_inherited',
+                                        DBObjectsCache.formulate_table({'columns': ['col1', 'col2'], 'children_count': 1,
+                                                                       'is_inherited': True}))
     print db_objects_cache
+    print db_objects_cache.get_all_tables_for_dbuniq('local:5432:postgres')
+    print db_objects_cache.get_all_tables_for_dbuniq('local:5432:postgres', no_inherits=False)
     print db_objects_cache.get_dbuniq_and_table_full_name('pos', 'ta*1')
     print db_objects_cache.get_column_multi('local:5432:postgres', 'public.table1', 'col1,col2')

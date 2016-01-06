@@ -37,6 +37,12 @@ def fill_timeline_holes(data, bucket, db_uniq):
     return ret_data
 
 
+def to_bool(bool_textual):
+    if bool_textual.lower().strip().startswith('t') or bool_textual.lower().strip() == '1':
+        return True
+    return False
+
+
 class Frontend(object):
 
     def __init__(self, features):
@@ -52,11 +58,14 @@ class Frontend(object):
         return urlparams.get_normalized_url()
 
     @cherrypy.expose
-    def default(self, *args):
+    def default(self, *args, **params):
+        print args, params
         if len(args) == 0:  # show all dbs
             return self.list_all_dbs()
         elif len(args) == 1:  # show all tables for a db
-            return self.list_all_tables(args[0])
+            return self.list_all_tables(args[0], no_inherits=to_bool(params.get('no_inherits', 'true')))
+        elif len(args) == 2 and params.get('show_children'): # show all children for a table
+            return self.list_child_tables(args[0], args[1])
 
         message = ''
         print 'args', args
@@ -100,20 +109,35 @@ class Frontend(object):
             tmpl = env.get_template('dbs.html')
             return tmpl.render(message='', db_info=db_info)
 
-    def list_all_tables(self, dbname, output_format='html'):
+    def list_all_tables(self, dbname, output_format='html', no_inherits=True):
         db_uniq, table = datadb.object_cache.get_dbuniq_and_table_full_name(dbname)
         if not db_uniq:
             raise Exception('Database {} not found! Available DBs: {}'.format(dbname, datadb.object_cache.cache.keys()))
         hostname, port, db = tuple(db_uniq.split(':'))
-        tables = datadb.object_cache.get_all_tables_for_dbuniq(db_uniq)
-        tables.sort()
+        tables = datadb.object_cache.get_all_tables_for_dbuniq(db_uniq, no_inherits)    # tables = [(table, {attrs})]
+        tables.sort(key=lambda x: x[0])
         # print 'tables', tables
 
         if output_format == 'json':
             return json.dumps(tables)
-        else:
-            tmpl = env.get_template('tables.html')
-            return tmpl.render(message='', dbname=db, hostname=hostname, port=port, tables=tables)
+
+        tmpl = env.get_template('tables.html')
+        return tmpl.render(message='', dbname=db, hostname=hostname, port=port, tables=tables)
+
+    def list_child_tables(self, dbname, table, output_format='html'):
+        """Only direct children. Direct query"""
+        db_uniq, table = datadb.object_cache.get_dbuniq_and_table_full_name(dbname, table)
+        if not db_uniq:
+            raise Exception('Database {} not found! Available DBs: {}'.format(dbname, datadb.object_cache.cache.keys()))
+        hostname, port, db = tuple(db_uniq.split(':'))
+
+        tables = datadb.get_children_for_dbuniq_table(db_uniq, table)
+
+        if output_format == 'json':
+            return json.dumps(tables)
+
+        tmpl = env.get_template('tables.html')
+        return tmpl.render(message='', dbname=dbname, hostname=hostname, port=port, tables=tables)
 
     def plot_graph(self, data, urlparams):
         line_data = []

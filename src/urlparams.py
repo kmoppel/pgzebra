@@ -31,7 +31,7 @@ class UrlParams(object):
         self.db_uniq, self.table = object_cache.get_dbuniq_and_table_full_name(args[0], args[1])
         if not (self.db_uniq and self.table):
             raise Exception('DB or Table not found!')   # TODO suggest similar tables if only table
-        self.column_names = [x['column_name'] for x in object_cache.cache[self.db_uniq][self.table]]
+        self.column_names = [x['column_name'] for x in object_cache.cache[self.db_uniq][self.table]['columns']]
         self.dbname = self.db_uniq.split(':')[2]
 
         current_arg_counter = 2

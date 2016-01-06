@@ -9,8 +9,14 @@
         <h3>{{message}}</h3>
         <h3>Tables for <abbr title="{{hostname}}:{{port}}">{{dbname}}</abbr></h3>
         <ul>
-        {% for table in tables: %}
-            <li><a href="/{{dbname}}/{{table|e}}">{{table|e}}</a></li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
+        {% for table, data in tables: %}
+            <li>
+                <a href="/{{dbname}}/{{table|e}}">{{table|e}}</a>
+                {% if data['children_count'] > 0 %}
+                <!--<a class="text-warning" href="/{{dbname}}/{{table|e}}?show_children=1"> [children  {{data['children_count']}}]</a>-->
+                <a href="/{{dbname}}/{{table|e}}?show_children=1"><span class="badge" title="Number of direct child tables. Click to show whole tree">{{data['children_count']}}</span></a>
+                {% endif %}
+            </li> <!-- TODO ~rowcount/size based on pg_class.relpages -->
         {% endfor %}
         </ul>
     </div>
